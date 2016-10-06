@@ -28,4 +28,16 @@ private:
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;
     
+
+/** The following are the implementations of the auto shuffle */
+public:
+    /** The main entry of the algorithm */
+    static void AutoShuffleImplementation();
+    
+    /** SpinBox for Density -- the density of the productions */
+    static TSharedRef<SSpinBox<float>> DensitySpinBox;
+    
+    /** SpinBox for Proxmity -- how similar products are placed */
+    static TSharedRef<SSpinBox<float>> ProxmitySpinBox;
+    
 };
