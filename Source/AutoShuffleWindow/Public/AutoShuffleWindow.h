@@ -48,5 +48,9 @@ private:
     
     /** Whitelist of the products */
     static TList<FText>* ProductsWhitelist;
+
+public:
+    /** Static method for parsing the Whitelist written in Json */
+    static TSharedPtr<FJsonObject> ParseJSON(const FString& FileContents, const FString& NameForErrors, bool bSilent);
     
 };

@@ -10,9 +10,13 @@
 
 #include "LevelEditor.h"
 
+/** The following header files are not from the template */
+#include "Json.h"
+
 static const FName AutoShuffleWindowTabName("AutoShuffleWindow");
 
 #define LOCTEXT_NAMESPACE "FAutoShuffleWindowModule"
+DEFINE_LOG_CATEGORY(LogAutoShuffle);
 
 void FAutoShuffleWindowModule::StartupModule()
 {
@@ -154,7 +158,7 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
     float Density = FAutoShuffleWindowModule::DensitySpinBox->GetValue();
     float Proxmity = FAutoShuffleWindowModule::ProxmitySpinBox->GetValue();
     FAutoShuffleWindowModule::ReadWhitelist();
-    UE_LOG(LogClass, Log, TEXT("Density: %f Proxmity: %f"), Density, Proxmity);
+    UE_LOG(LogAutoShuffle, Log, TEXT("Density: %f Proxmity: %f"), Density, Proxmity);
 }
 
 void FAutoShuffleWindowModule::ReadWhitelist()
@@ -174,11 +178,54 @@ void FAutoShuffleWindowModule::ReadWhitelist()
     }
     FString PluginDir = FPaths::Combine(*FPaths::GamePluginsDir(), TEXT("AutoShuffleWindow"));
     FString ResourseDir = FPaths::Combine(*PluginDir, TEXT("Resources"));
-    FString FileDir = FPaths::Combine(*ResourseDir, TEXT("Whitelist"));
+    FString FileDir = FPaths::Combine(*ResourseDir, TEXT("Whitelist.json"));
     FString Filedata = "";
     FFileHelper::LoadFileToString(Filedata, *FileDir);
-    UE_LOG(LogClass, Log, TEXT("FileDit: %s"), *FileDir);
-    UE_LOG(LogClass, Log, TEXT("From txt file: %s"), *Filedata);
+    TSharedPtr<FJsonObject> WhitelistJson = FAutoShuffleWindowModule::ParseJSON(Filedata, TEXT("Whitelist"), false);
+    if (!WhitelistJson.IsValid())
+    {
+        UE_LOG(LogAutoShuffle, Log, TEXT("Nothing to shuffle. Module quites."));
+        return;
+    }
+    WhitelistJson = WhitelistJson->GetObjectField("Whitelist");
+    if (!WhitelistJson.IsValid())
+    {
+        UE_LOG(LogAutoShuffle, Log, TEXT("Couldn't find the Whitelist object. Error!"));
+        return;
+    }
+    UE_LOG(LogAutoShuffle, Log, TEXT("Success."));
+}
+
+TSharedPtr<FJsonObject> FAutoShuffleWindowModule::ParseJSON(const FString& FileContents, const FString& NameForErrors, bool bSilent)
+{
+    // Parsing source code from:
+    // https://github.com/EpicGames/UnrealEngine/blob/master/Engine/Plugins/2D/Paper2D/Source/PaperSpriteSheetImporter/Private/PaperJsonSpriteSheetImporter.cpp
+    if (!FileContents.IsEmpty())
+    {
+        const TSharedRef<TJsonReader<>>& Reader = TJsonReaderFactory<>::Create(FileContents);
+        TSharedPtr<FJsonObject> SpriteDescriptorObject;
+        if (FJsonSerializer::Deserialize(Reader, SpriteDescriptorObject) && SpriteDescriptorObject.IsValid())
+        {
+            // File was loaded and deserialized OK!
+            return SpriteDescriptorObject;
+        }
+        else
+        {
+            if (!bSilent)
+            {
+                UE_LOG(LogAutoShuffle, Warning, TEXT("Faled to parse sprite descriptor file '%s'. Error: '%s'"), *NameForErrors, *Reader->GetErrorMessage());
+            }
+            return nullptr;
+        }
+    }
+    else
+    {
+        if (!bSilent)
+        {
+            UE_LOG(LogAutoShuffle, Warning, TEXT("Sprite descriptor file '%s' was empty. This sprite cannot be imported."), *NameForErrors);
+        }
+        return nullptr;
+    }
 }
 
 #undef LOCTEXT_NAMESPACE
