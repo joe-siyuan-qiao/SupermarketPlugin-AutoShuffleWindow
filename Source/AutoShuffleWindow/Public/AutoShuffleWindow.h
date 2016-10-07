@@ -30,7 +30,7 @@ private:
     
 
 /** The following are the implementations of the auto shuffle */
-public:
+private:
     /** The main entry of the algorithm */
     static void AutoShuffleImplementation();
     
@@ -39,5 +39,14 @@ public:
     
     /** SpinBox for Proxmity -- how similar products are placed */
     static TSharedRef<SSpinBox<float>> ProxmitySpinBox;
+    
+    /** Read the Whitelist of shelves and products from configure file */
+    static void ReadWhitelist();
+    
+    /** Whitelist of the shelves */
+    static TList<FText>* ShelvesWhitelist;
+    
+    /** Whitelist of the products */
+    static TList<FText>* ProductsWhitelist;
     
 };

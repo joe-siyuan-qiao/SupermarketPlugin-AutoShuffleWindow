@@ -27,6 +27,11 @@ public class AutoShuffleWindow : ModuleRules
 			new string[]
 			{
 				"Core",
+                "CoreUObject",
+                "Engine",
+                "InputCore",
+                "RenderCore",
+                "ImageWrapper",
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -43,6 +48,8 @@ public class AutoShuffleWindow : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+                "Json",
+                "JsonUtilities",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

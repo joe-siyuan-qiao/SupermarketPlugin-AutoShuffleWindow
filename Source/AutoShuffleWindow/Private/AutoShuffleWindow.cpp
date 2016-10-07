@@ -146,12 +146,39 @@ void FAutoShuffleWindowModule::AddToolbarExtension(FToolBarBuilder& Builder)
 /** The folloinwg are the implemetations of the auto shuffle */
 TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::DensitySpinBox = SNew(SSpinBox<float>);
 TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::ProxmitySpinBox = SNew(SSpinBox<float>);
+TList<FText>* FAutoShuffleWindowModule::ShelvesWhitelist = nullptr;
+TList<FText>* FAutoShuffleWindowModule::ProductsWhitelist = nullptr;
 
 void FAutoShuffleWindowModule::AutoShuffleImplementation()
 {
     float Density = FAutoShuffleWindowModule::DensitySpinBox->GetValue();
     float Proxmity = FAutoShuffleWindowModule::ProxmitySpinBox->GetValue();
+    FAutoShuffleWindowModule::ReadWhitelist();
     UE_LOG(LogClass, Log, TEXT("Density: %f Proxmity: %f"), Density, Proxmity);
+}
+
+void FAutoShuffleWindowModule::ReadWhitelist()
+{
+    // Always read the list even if the whitelists have been initialized
+    // This is to make sure that changes of the configurations can be directly reflected every time the button is clicked
+    // NOTE: the file may be in sandbox which is not changable after loading
+    if (FAutoShuffleWindowModule::ShelvesWhitelist != nullptr)
+    {
+        delete [] FAutoShuffleWindowModule::ShelvesWhitelist;
+        FAutoShuffleWindowModule::ShelvesWhitelist = nullptr;
+    }
+    if (FAutoShuffleWindowModule::ProductsWhitelist != nullptr)
+    {
+        delete [] FAutoShuffleWindowModule::ProductsWhitelist;
+        FAutoShuffleWindowModule::ProductsWhitelist = nullptr;
+    }
+    FString PluginDir = FPaths::Combine(*FPaths::GamePluginsDir(), TEXT("AutoShuffleWindow"));
+    FString ResourseDir = FPaths::Combine(*PluginDir, TEXT("Resources"));
+    FString FileDir = FPaths::Combine(*ResourseDir, TEXT("Whitelist"));
+    FString Filedata = "";
+    FFileHelper::LoadFileToString(Filedata, *FileDir);
+    UE_LOG(LogClass, Log, TEXT("FileDit: %s"), *FileDir);
+    UE_LOG(LogClass, Log, TEXT("From txt file: %s"), *Filedata);
 }
 
 #undef LOCTEXT_NAMESPACE

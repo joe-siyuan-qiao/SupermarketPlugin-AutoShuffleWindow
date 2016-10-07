@@ -1,0 +1,50 @@
+{
+    "Whitelist": {
+        "Shelves": [{
+            "id": 0,
+            "Name": "BP_ShelfMain",
+            "Repeat": 1,
+            "Scale": 5.2,
+            "Shelfbase": [
+                0.05464480874316935,
+                0.26502732240437166,
+                0.46994535519125690,
+                0.67759562841530050,
+                0.8633879781420766
+            ]
+        }],
+        "Products": [{
+            "id": 0,
+            "GroupName": "chips_missvickies",
+            "Members": [{
+                "id": 0,
+                "Name": "chips_missvickies_016",
+                "Scale": 5.2
+            }, {
+                "id": 1,
+                "Name": "chips_missvickies_17",
+                "Scale": 5.2
+            }, {
+                "id": 2,
+                "Name": "chips_missvickies_18",
+                "Scale": 5.2
+            }]
+        }, {
+			"id": 1,
+			"GroupName": "chips_pringles",
+			"Members": [{
+				"id": 0,
+				"Name": "chips_pringles_007",
+				"Scale": 5.2
+			}, {
+				"id": 1,
+				"Name": "chips_pringles_8",
+				"Scale": 5.2
+			}, {
+				"id": 2,
+				"Name": "chips_pringles_9",
+				"Scale": 5.2
+			}]
+        }]
+    }
+}
