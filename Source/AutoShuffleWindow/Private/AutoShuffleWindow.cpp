@@ -153,7 +153,7 @@ void FAutoShuffleWindowModule::AddToolbarExtension(FToolBarBuilder& Builder)
 TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::DensitySpinBox = SNew(SSpinBox<float>);
 TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::ProxmitySpinBox = SNew(SSpinBox<float>);
 TArray<FAutoShuffleShelf>* FAutoShuffleWindowModule::ShelvesWhitelist = nullptr;
-TArray<FAutoShuffleProduct>* FAutoShuffleWindowModule::ProductsWhitelist = nullptr;
+TArray<FAutoShuffleProductGroup>* FAutoShuffleWindowModule::ProductsWhitelist = nullptr;
 
 void FAutoShuffleWindowModule::AutoShuffleImplementation()
 {
@@ -167,7 +167,6 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
 {
     // Always read the list even if the whitelists have been initialized
     // This is to make sure that changes of the configurations can be directly reflected every time the button is clicked
-    // NOTE: the file may be in sandbox which is not changable after loading
     if (FAutoShuffleWindowModule::ShelvesWhitelist != nullptr)
     {
         delete FAutoShuffleWindowModule::ShelvesWhitelist;
@@ -205,16 +204,14 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
     TSharedPtr<FJsonObject> WhitelistObjectJson = WhitelistJson->GetObjectField("Whitelist");
     
     // Start reading JsonArray "Shelves"
+    if (WhitelistObjectJson->HasField("Shelves"))
     {
-        if (WhitelistObjectJson->HasField("Shelves"))
-        {
-            UE_LOG(LogAutoShuffle, Log, TEXT("Reading Shelves..."));
-        }
-        else
-        {
-            UE_LOG(LogAutoShuffle, Warning, TEXT("Shelves reading failed. Module quits."));
-            return false;
-        }
+        UE_LOG(LogAutoShuffle, Log, TEXT("Reading Shelves..."));
+    }
+    else
+    {
+        UE_LOG(LogAutoShuffle, Warning, TEXT("Shelves reading failed. Module quits."));
+        return false;
     }
     TArray<TSharedPtr<FJsonValue>> ShelvesArrayJson = WhitelistObjectJson->GetArrayField("Shelves");
     FAutoShuffleWindowModule::ShelvesWhitelist = new TArray<FAutoShuffleShelf>();
@@ -234,6 +231,7 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
         ShelvesWhitelist->Top().SetScale(NewScale);
         ShelvesWhitelist->Top().SetName(NewName);
     }
+    
 #ifdef VERBOSE_AUTO_SHUFFLE
     for (auto ShelfIt = ShelvesWhitelist->CreateIterator(); ShelfIt; ++ShelfIt)
     {
@@ -246,18 +244,47 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
 #endif
     
     // Start reading JsonArray "Products"
+    if (WhitelistObjectJson->HasField("Products"))
     {
-        if (WhitelistObjectJson->HasField("Products"))
-        {
-            UE_LOG(LogAutoShuffle, Log, TEXT("Reading Products..."));
-        }
-        else
-        {
-            UE_LOG(LogAutoShuffle, Warning, TEXT("Products reading failed. Module quits."));
-            return false;
-        }
+        UE_LOG(LogAutoShuffle, Log, TEXT("Reading Products..."));
+    }
+    else
+    {
+        UE_LOG(LogAutoShuffle, Warning, TEXT("Products reading failed. Module quits."));
+        return false;
     }
     TArray<TSharedPtr<FJsonValue>> ProductsArrayJson = WhitelistObjectJson->GetArrayField("Products");
+    FAutoShuffleWindowModule::ProductsWhitelist = new TArray<FAutoShuffleProductGroup>();
+    for (auto JsonValueIt = ProductsArrayJson.CreateIterator(); JsonValueIt; ++JsonValueIt)
+    {
+        TSharedPtr<FJsonObject> ProductObjectJson = (*JsonValueIt)->AsObject();
+        ProductsWhitelist->Add(FAutoShuffleProductGroup());
+        FString NewGroupName = ProductObjectJson->GetStringField("GroupName");
+        TArray<FAutoShuffleObject>* NewMembers = new TArray<FAutoShuffleObject>();
+        TArray<TSharedPtr<FJsonValue>> Members = ProductObjectJson->GetArrayField("Members");
+        for (auto MemberValueIt = Members.CreateIterator(); MemberValueIt; ++MemberValueIt)
+        {
+            TSharedPtr<FJsonObject> ProductMember = (*MemberValueIt)->AsObject();
+            NewMembers->Add(FAutoShuffleObject());
+            FString NewName = ProductMember->GetStringField("Name");
+            float NewScale = ProductMember->GetNumberField("Scale");
+            NewMembers->Top().SetName(NewName);
+            NewMembers->Top().SetScale(NewScale);
+        }
+        ProductsWhitelist->Top().SetName(NewGroupName);
+        ProductsWhitelist->Top().SetMembers(NewMembers);
+    }
+    
+#ifdef VERBOSE_AUTO_SHUFFLE
+    for (auto GroupIt = ProductsWhitelist->CreateIterator(); GroupIt; ++GroupIt)
+    {
+        UE_LOG(LogAutoShuffle, Log, TEXT("Product Group: %s"), *(GroupIt->GetName()));
+        for (auto ProductIt = GroupIt->GetMembers()->CreateIterator(); ProductIt; ++ProductIt)
+        {
+            UE_LOG(LogAutoShuffle, Log, TEXT("Product Name: %s in Scale: %f"), *(ProductIt->GetName()), ProductIt->GetScale());
+        }
+    }
+#endif
     
     UE_LOG(LogAutoShuffle, Log, TEXT("Collected %d Shelves and %d Products Group"), ShelvesArrayJson.Num(), ProductsArrayJson.Num());
     
@@ -373,6 +400,43 @@ void FAutoShuffleShelf::SetShelfBase(TArray<float>* NewShelfBase)
 TArray<float>* FAutoShuffleShelf::GetShelfBase() const
 {
     return ShelfBase;
+}
+
+FAutoShuffleProductGroup::FAutoShuffleProductGroup()
+{
+    Members = nullptr;
+}
+
+FAutoShuffleProductGroup::~FAutoShuffleProductGroup()
+{
+    if (Members != nullptr)
+    {
+        delete Members;
+    }
+}
+
+void FAutoShuffleProductGroup::SetMembers(TArray<FAutoShuffleObject>* NewMembers)
+{
+    if (Members != nullptr)
+    {
+        delete Members;
+    }
+    Members = NewMembers;
+}
+
+TArray<FAutoShuffleObject>* FAutoShuffleProductGroup::GetMembers() const
+{
+    return Members;
+}
+
+void FAutoShuffleProductGroup::SetName(FString& NewName)
+{
+    Name = NewName;
+}
+
+FString FAutoShuffleProductGroup::GetName() const
+{
+    return Name;
 }
 
 #undef LOCTEXT_NAMESPACE

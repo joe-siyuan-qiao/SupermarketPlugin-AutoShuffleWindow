@@ -8,7 +8,7 @@ class FToolBarBuilder;
 class FMenuBuilder;
 class FAutoShuffleObject;
 class FAutoShuffleShelf;
-class FAutoShuffleProduct;
+class FAutoShuffleProductGroup;
 
 class FAutoShuffleWindowModule : public IModuleInterface
 {
@@ -50,7 +50,7 @@ private:
     static TArray<FAutoShuffleShelf>* ShelvesWhitelist;
     
     /** Whitelist of the products */
-    static TArray<FAutoShuffleProduct>* ProductsWhitelist;
+    static TArray<FAutoShuffleProductGroup>* ProductsWhitelist;
 
 public:
     /** Static method for parsing the Whitelist written in Json */
@@ -121,9 +121,31 @@ private:
     TArray<float>* ShelfBase;
 };
 
-class FAutoShuffleProduct : public FAutoShuffleObject
+class FAutoShuffleProductGroup
 {
+public:
+    /** Construct and Deconstruct */
+    FAutoShuffleProductGroup();
+    ~FAutoShuffleProductGroup();
     
+    /** Set the members. Each member is an instance of the product group */
+    void SetMembers(TArray<FAutoShuffleObject>* NewMembers);
+    
+    /** Get the members */
+    TArray<FAutoShuffleObject>* GetMembers() const;
+    
+    /** Set the group name */
+    void SetName(FString& NewName);
+
+    /** Get the group name */
+    FString GetName() const;
+    
+private:
+    /** The members of the product. Proxmity is used for deciding placing members */
+    TArray<FAutoShuffleObject>* Members;
+    
+    /** The group name */
+    FString Name;
 };
 
 
