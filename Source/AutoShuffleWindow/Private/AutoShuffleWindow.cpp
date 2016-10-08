@@ -168,12 +168,12 @@ void FAutoShuffleWindowModule::ReadWhitelist()
     // NOTE: the file may be in sandbox which is not changable after loading
     if (FAutoShuffleWindowModule::ShelvesWhitelist != nullptr)
     {
-        delete [] FAutoShuffleWindowModule::ShelvesWhitelist;
+        delete FAutoShuffleWindowModule::ShelvesWhitelist;
         FAutoShuffleWindowModule::ShelvesWhitelist = nullptr;
     }
     if (FAutoShuffleWindowModule::ProductsWhitelist != nullptr)
     {
-        delete [] FAutoShuffleWindowModule::ProductsWhitelist;
+        delete FAutoShuffleWindowModule::ProductsWhitelist;
         FAutoShuffleWindowModule::ProductsWhitelist = nullptr;
     }
     FString PluginDir = FPaths::Combine(*FPaths::GamePluginsDir(), TEXT("AutoShuffleWindow"));
@@ -226,6 +226,75 @@ TSharedPtr<FJsonObject> FAutoShuffleWindowModule::ParseJSON(const FString& FileC
         }
         return nullptr;
     }
+}
+
+FAutoShuffleObject::FAutoShuffleObject()
+{
+    Scale = 1.f;
+    Name = TEXT("Uninitialized Object Name");
+    Position = FVector(0.f, 0.f, 0.f);
+    Rotation = FVector(0.f, 0.f, 0.f);
+}
+
+FAutoShuffleObject::~FAutoShuffleObject()
+{
+}
+
+void FAutoShuffleObject::SetName(FString& NewName)
+{
+    Name = NewName;
+}
+
+FString FAutoShuffleObject::GetName() const
+{
+    return Name;
+}
+
+void FAutoShuffleObject::SetPosition(FVector& NewPosition)
+{
+    Position = NewPosition;
+}
+
+FVector FAutoShuffleObject::GetPosition() const
+{
+    return Position;
+}
+
+void FAutoShuffleObject::SetRotation(FVector& NewRotation)
+{
+    Rotation = NewRotation;
+}
+
+FVector FAutoShuffleObject::GetRotation() const
+{
+    return Rotation;
+}
+
+FAutoShuffleShelf::FAutoShuffleShelf() : FAutoShuffleObject()
+{
+    ShelfBase = nullptr;
+}
+
+FAutoShuffleShelf::~FAutoShuffleShelf()
+{
+    if (ShelfBase != nullptr)
+    {
+        delete ShelfBase;
+    }
+}
+
+void FAutoShuffleShelf::SetShelfBase(TList<float>* NewShelfBase)
+{
+    if (ShelfBase != nullptr)
+    {
+        delete ShelfBase;
+    }
+    ShelfBase = NewShelfBase;
+}
+
+TList<float>* FAutoShuffleShelf::GetShelfBase() const
+{
+    return ShelfBase;
 }
 
 #undef LOCTEXT_NAMESPACE

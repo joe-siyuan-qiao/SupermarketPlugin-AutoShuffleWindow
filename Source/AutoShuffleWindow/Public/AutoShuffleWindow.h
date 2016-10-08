@@ -6,6 +6,9 @@
 
 class FToolBarBuilder;
 class FMenuBuilder;
+class FAutoShuffleObject;
+class FAutoShuffleShelf;
+class FAutoShuffleProduct;
 
 class FAutoShuffleWindowModule : public IModuleInterface
 {
@@ -54,3 +57,68 @@ public:
     static TSharedPtr<FJsonObject> ParseJSON(const FString& FileContents, const FString& NameForErrors, bool bSilent);
     
 };
+
+class FAutoShuffleObject
+{
+public:
+    /** Construct and Deconstruct */
+    FAutoShuffleObject();
+    ~FAutoShuffleObject();
+    
+    /** Set the object name */
+    void SetName(FString& NewName);
+    
+    /** Get the object name */
+    FString GetName() const;
+    
+    /** Set the position */
+    void SetPosition(FVector& NewPosition);
+    
+    /** Get the position */
+    FVector GetPosition() const;
+    
+    /** Set the rotation */
+    void SetRotation(FVector& NewRotation);
+    
+    /** Get the rotation */
+    FVector GetRotation() const;
+    
+private:
+    /** The rendering scale of the shelf in the editor world */
+    float Scale;
+    
+    /** The name of the object in the editor world */
+    FString Name;
+    
+    /** The Position of the object in the editor world */
+    FVector Position;
+    
+    /** The Rotation of the object in the editor world */
+    FVector Rotation;
+};
+
+class FAutoShuffleShelf : public FAutoShuffleObject
+{
+public:
+    /** Construct and Deconstruct */
+    FAutoShuffleShelf();
+    ~FAutoShuffleShelf();
+    
+    /** Get the shelf base */
+    TList<float>* GetShelfBase() const;
+    
+    /** Set the shelf base */
+    void SetShelfBase(TList<float>* NewShelfBase);
+    
+private:
+    /** The relative heights of each level of bases measured from bottom */
+    TList<float>* ShelfBase;
+};
+
+class FAutoShuffleProduct : public FAutoShuffleObject
+{
+    
+};
+
+
+
