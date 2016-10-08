@@ -18,6 +18,8 @@ static const FName AutoShuffleWindowTabName("AutoShuffleWindow");
 #define LOCTEXT_NAMESPACE "FAutoShuffleWindowModule"
 DEFINE_LOG_CATEGORY(LogAutoShuffle);
 
+#define VERBOSE_AUTO_SHUFFLE
+
 void FAutoShuffleWindowModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
@@ -150,8 +152,8 @@ void FAutoShuffleWindowModule::AddToolbarExtension(FToolBarBuilder& Builder)
 /** The folloinwg are the implemetations of the auto shuffle */
 TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::DensitySpinBox = SNew(SSpinBox<float>);
 TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::ProxmitySpinBox = SNew(SSpinBox<float>);
-TList<FText>* FAutoShuffleWindowModule::ShelvesWhitelist = nullptr;
-TList<FText>* FAutoShuffleWindowModule::ProductsWhitelist = nullptr;
+TArray<FAutoShuffleShelf>* FAutoShuffleWindowModule::ShelvesWhitelist = nullptr;
+TArray<FAutoShuffleProduct>* FAutoShuffleWindowModule::ProductsWhitelist = nullptr;
 
 void FAutoShuffleWindowModule::AutoShuffleImplementation()
 {
@@ -161,7 +163,7 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
     UE_LOG(LogAutoShuffle, Log, TEXT("Density: %f Proxmity: %f"), Density, Proxmity);
 }
 
-void FAutoShuffleWindowModule::ReadWhitelist()
+bool FAutoShuffleWindowModule::ReadWhitelist()
 {
     // Always read the list even if the whitelists have been initialized
     // This is to make sure that changes of the configurations can be directly reflected every time the button is clicked
@@ -182,18 +184,84 @@ void FAutoShuffleWindowModule::ReadWhitelist()
     FString Filedata = "";
     FFileHelper::LoadFileToString(Filedata, *FileDir);
     TSharedPtr<FJsonObject> WhitelistJson = FAutoShuffleWindowModule::ParseJSON(Filedata, TEXT("Whitelist"), false);
-    if (!WhitelistJson.IsValid())
+    
+    // Start reading JsonObject "Whitelist"
     {
-        UE_LOG(LogAutoShuffle, Log, TEXT("Nothing to shuffle. Module quites."));
-        return;
+        if (!WhitelistJson.IsValid())
+        {
+            UE_LOG(LogAutoShuffle, Warning, TEXT("Nothing to shuffle. Module quites."));
+            return false;
+        }
+        if (WhitelistJson->HasField("Whitelist"))
+        {
+            UE_LOG(LogAutoShuffle, Log, TEXT("Reading Whitelist..."));
+        }
+        else
+        {
+            UE_LOG(LogAutoShuffle, Warning, TEXT("Whitelist reading failed. Module quites."));
+            return false;
+        }
     }
-    WhitelistJson = WhitelistJson->GetObjectField("Whitelist");
-    if (!WhitelistJson.IsValid())
+    TSharedPtr<FJsonObject> WhitelistObjectJson = WhitelistJson->GetObjectField("Whitelist");
+    
+    // Start reading JsonArray "Shelves"
     {
-        UE_LOG(LogAutoShuffle, Log, TEXT("Couldn't find the Whitelist object. Error!"));
-        return;
+        if (WhitelistObjectJson->HasField("Shelves"))
+        {
+            UE_LOG(LogAutoShuffle, Log, TEXT("Reading Shelves..."));
+        }
+        else
+        {
+            UE_LOG(LogAutoShuffle, Warning, TEXT("Shelves reading failed. Module quits."));
+            return false;
+        }
     }
-    UE_LOG(LogAutoShuffle, Log, TEXT("Success."));
+    TArray<TSharedPtr<FJsonValue>> ShelvesArrayJson = WhitelistObjectJson->GetArrayField("Shelves");
+    FAutoShuffleWindowModule::ShelvesWhitelist = new TArray<FAutoShuffleShelf>();
+    for (auto JsonValueIt = ShelvesArrayJson.CreateIterator(); JsonValueIt; ++JsonValueIt)
+    {
+        TSharedPtr<FJsonObject> ShelfObjectJson = (*JsonValueIt)->AsObject();
+        ShelvesWhitelist->Add(FAutoShuffleShelf());
+        FString NewName = ShelfObjectJson->GetStringField("Name");
+        float NewScale = ShelfObjectJson->GetNumberField("Scale");
+        TArray<float>* NewShelfBase = new TArray<float>();
+        TArray<TSharedPtr<FJsonValue>> Shelfbase = ShelfObjectJson->GetArrayField("Shelfbase");
+        for (auto BaseValueIt = Shelfbase.CreateIterator(); BaseValueIt; ++BaseValueIt)
+        {
+            NewShelfBase->Add((*BaseValueIt)->AsNumber());
+        }
+        ShelvesWhitelist->Top().SetShelfBase(NewShelfBase);
+        ShelvesWhitelist->Top().SetScale(NewScale);
+        ShelvesWhitelist->Top().SetName(NewName);
+    }
+#ifdef VERBOSE_AUTO_SHUFFLE
+    for (auto ShelfIt = ShelvesWhitelist->CreateIterator(); ShelfIt; ++ShelfIt)
+    {
+        UE_LOG(LogAutoShuffle, Log, TEXT("Shelf: %s in Scale: %f"), *(ShelfIt->GetName()), ShelfIt->GetScale());
+        for (auto BaseIt = ShelfIt->GetShelfBase()->CreateIterator(); BaseIt; ++BaseIt)
+        {
+            UE_LOG(LogAutoShuffle, Log, TEXT("Shelfbase: %f"), *BaseIt);
+        }
+    }
+#endif
+    
+    // Start reading JsonArray "Products"
+    {
+        if (WhitelistObjectJson->HasField("Products"))
+        {
+            UE_LOG(LogAutoShuffle, Log, TEXT("Reading Products..."));
+        }
+        else
+        {
+            UE_LOG(LogAutoShuffle, Warning, TEXT("Products reading failed. Module quits."));
+            return false;
+        }
+    }
+    TArray<TSharedPtr<FJsonValue>> ProductsArrayJson = WhitelistObjectJson->GetArrayField("Products");
+    
+    UE_LOG(LogAutoShuffle, Log, TEXT("Collected %d Shelves and %d Products Group"), ShelvesArrayJson.Num(), ProductsArrayJson.Num());
+    
+    return true;
 }
 
 TSharedPtr<FJsonObject> FAutoShuffleWindowModule::ParseJSON(const FString& FileContents, const FString& NameForErrors, bool bSilent)
@@ -270,6 +338,16 @@ FVector FAutoShuffleObject::GetRotation() const
     return Rotation;
 }
 
+void FAutoShuffleObject::SetScale(float NewScale)
+{
+    Scale = NewScale;
+}
+
+float FAutoShuffleObject::GetScale() const
+{
+    return Scale;
+}
+
 FAutoShuffleShelf::FAutoShuffleShelf() : FAutoShuffleObject()
 {
     ShelfBase = nullptr;
@@ -283,7 +361,7 @@ FAutoShuffleShelf::~FAutoShuffleShelf()
     }
 }
 
-void FAutoShuffleShelf::SetShelfBase(TList<float>* NewShelfBase)
+void FAutoShuffleShelf::SetShelfBase(TArray<float>* NewShelfBase)
 {
     if (ShelfBase != nullptr)
     {
@@ -292,7 +370,7 @@ void FAutoShuffleShelf::SetShelfBase(TList<float>* NewShelfBase)
     ShelfBase = NewShelfBase;
 }
 
-TList<float>* FAutoShuffleShelf::GetShelfBase() const
+TArray<float>* FAutoShuffleShelf::GetShelfBase() const
 {
     return ShelfBase;
 }

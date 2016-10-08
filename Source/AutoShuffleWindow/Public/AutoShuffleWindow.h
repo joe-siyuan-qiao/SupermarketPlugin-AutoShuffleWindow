@@ -44,13 +44,13 @@ private:
     static TSharedRef<SSpinBox<float>> ProxmitySpinBox;
     
     /** Read the Whitelist of shelves and products from configure file */
-    static void ReadWhitelist();
+    static bool ReadWhitelist();
     
     /** Whitelist of the shelves */
-    static TList<FText>* ShelvesWhitelist;
+    static TArray<FAutoShuffleShelf>* ShelvesWhitelist;
     
     /** Whitelist of the products */
-    static TList<FText>* ProductsWhitelist;
+    static TArray<FAutoShuffleProduct>* ProductsWhitelist;
 
 public:
     /** Static method for parsing the Whitelist written in Json */
@@ -83,6 +83,12 @@ public:
     /** Get the rotation */
     FVector GetRotation() const;
     
+    /** Set the scale */
+    void SetScale(float NewScale);
+    
+    /** Get the scale */
+    float GetScale() const;
+    
 private:
     /** The rendering scale of the shelf in the editor world */
     float Scale;
@@ -105,14 +111,14 @@ public:
     ~FAutoShuffleShelf();
     
     /** Get the shelf base */
-    TList<float>* GetShelfBase() const;
+    TArray<float>* GetShelfBase() const;
     
     /** Set the shelf base */
-    void SetShelfBase(TList<float>* NewShelfBase);
+    void SetShelfBase(TArray<float>* NewShelfBase);
     
 private:
     /** The relative heights of each level of bases measured from bottom */
-    TList<float>* ShelfBase;
+    TArray<float>* ShelfBase;
 };
 
 class FAutoShuffleProduct : public FAutoShuffleObject
