@@ -89,6 +89,12 @@ public:
     /** Get the scale */
     float GetScale() const;
     
+    /** Set the ObjectActor */
+    void SetObjectActor(AActor* NewObjectActor);
+    
+    /** Get the ObjectActor */
+    AActor* GetObjectActor() const;
+    
 private:
     /** The rendering scale of the shelf in the editor world */
     float Scale;
@@ -101,6 +107,9 @@ private:
     
     /** The Rotation of the object in the editor world */
     FVector Rotation;
+    
+    /** Pointer to the AActor in the Editor World */
+    AActor* ObjectActor;
 };
 
 class FAutoShuffleShelf : public FAutoShuffleObject

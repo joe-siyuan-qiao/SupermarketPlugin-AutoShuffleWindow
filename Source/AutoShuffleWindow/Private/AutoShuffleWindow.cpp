@@ -177,6 +177,7 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
         delete FAutoShuffleWindowModule::ProductsWhitelist;
         FAutoShuffleWindowModule::ProductsWhitelist = nullptr;
     }
+    auto EditorWorld = GEditor->GetEditorWorldContext().World();
     FString PluginDir = FPaths::Combine(*FPaths::GamePluginsDir(), TEXT("AutoShuffleWindow"));
     FString ResourseDir = FPaths::Combine(*PluginDir, TEXT("Resources"));
     FString FileDir = FPaths::Combine(*ResourseDir, TEXT("Whitelist.json"));
@@ -218,8 +219,26 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
     for (auto JsonValueIt = ShelvesArrayJson.CreateIterator(); JsonValueIt; ++JsonValueIt)
     {
         TSharedPtr<FJsonObject> ShelfObjectJson = (*JsonValueIt)->AsObject();
-        ShelvesWhitelist->Add(FAutoShuffleShelf());
         FString NewName = ShelfObjectJson->GetStringField("Name");
+        AActor* NewObjectActor = nullptr;
+        for (TActorIterator<AActor> ActorIt(EditorWorld); ActorIt; ++ActorIt)
+        {
+            if (ActorIt->GetName().Contains(NewName))
+            {
+                NewObjectActor = *ActorIt;
+#ifdef VERBOSE_AUTO_SHUFFLE
+                UE_LOG(LogAutoShuffle, Log, TEXT("Found %s for %s"), *NewObjectActor->GetName(), *NewName);
+#endif
+                break;
+            }
+        }
+        if (NewObjectActor == nullptr)
+        {
+#ifdef VERBOSE_AUTO_SHUFFLE
+            UE_LOG(LogAutoShuffle, Log, TEXT("Found 0 object for %s"), *NewName);
+#endif
+            continue;
+        }
         float NewScale = ShelfObjectJson->GetNumberField("Scale");
         TArray<float>* NewShelfBase = new TArray<float>();
         TArray<TSharedPtr<FJsonValue>> Shelfbase = ShelfObjectJson->GetArrayField("Shelfbase");
@@ -227,9 +246,11 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
         {
             NewShelfBase->Add((*BaseValueIt)->AsNumber());
         }
+        ShelvesWhitelist->Add(FAutoShuffleShelf());
         ShelvesWhitelist->Top().SetShelfBase(NewShelfBase);
         ShelvesWhitelist->Top().SetScale(NewScale);
         ShelvesWhitelist->Top().SetName(NewName);
+        ShelvesWhitelist->Top().SetObjectActor(NewObjectActor);
     }
     
 #ifdef VERBOSE_AUTO_SHUFFLE
@@ -258,19 +279,39 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
     for (auto JsonValueIt = ProductsArrayJson.CreateIterator(); JsonValueIt; ++JsonValueIt)
     {
         TSharedPtr<FJsonObject> ProductObjectJson = (*JsonValueIt)->AsObject();
-        ProductsWhitelist->Add(FAutoShuffleProductGroup());
         FString NewGroupName = ProductObjectJson->GetStringField("GroupName");
         TArray<FAutoShuffleObject>* NewMembers = new TArray<FAutoShuffleObject>();
         TArray<TSharedPtr<FJsonValue>> Members = ProductObjectJson->GetArrayField("Members");
         for (auto MemberValueIt = Members.CreateIterator(); MemberValueIt; ++MemberValueIt)
         {
             TSharedPtr<FJsonObject> ProductMember = (*MemberValueIt)->AsObject();
-            NewMembers->Add(FAutoShuffleObject());
             FString NewName = ProductMember->GetStringField("Name");
+            AActor* NewObjectActor = nullptr;
+            for (TActorIterator<AActor> ActorIt(EditorWorld); ActorIt; ++ActorIt)
+            {
+                if (ActorIt->GetName().Contains(NewName))
+                {
+                    NewObjectActor = *ActorIt;
+#ifdef VERBOSE_AUTO_SHUFFLE
+                    UE_LOG(LogAutoShuffle, Log, TEXT("Found %s for %s"), *ActorIt->GetName(), *NewName);
+#endif
+                    break;
+                }
+            }
+            if (NewObjectActor == nullptr)
+            {
+#ifdef VERBOSE_AUTO_SHUFFLE
+                UE_LOG(LogAutoShuffle, Log, TEXT("Found 0 Object for %s"), *NewName);
+#endif
+                continue;
+            }
             float NewScale = ProductMember->GetNumberField("Scale");
+            NewMembers->Add(FAutoShuffleObject());
             NewMembers->Top().SetName(NewName);
             NewMembers->Top().SetScale(NewScale);
+            NewMembers->Top().SetObjectActor(NewObjectActor);
         }
+        ProductsWhitelist->Add(FAutoShuffleProductGroup());
         ProductsWhitelist->Top().SetName(NewGroupName);
         ProductsWhitelist->Top().SetMembers(NewMembers);
     }
@@ -329,6 +370,7 @@ FAutoShuffleObject::FAutoShuffleObject()
     Name = TEXT("Uninitialized Object Name");
     Position = FVector(0.f, 0.f, 0.f);
     Rotation = FVector(0.f, 0.f, 0.f);
+    ObjectActor = nullptr;
 }
 
 FAutoShuffleObject::~FAutoShuffleObject()
@@ -373,6 +415,17 @@ void FAutoShuffleObject::SetScale(float NewScale)
 float FAutoShuffleObject::GetScale() const
 {
     return Scale;
+}
+
+void FAutoShuffleObject::SetObjectActor(AActor* NewObjectActor)
+{
+    // We don't delete anything
+    ObjectActor = NewObjectActor;
+}
+
+AActor* FAutoShuffleObject::GetObjectActor() const
+{
+    return ObjectActor;
 }
 
 FAutoShuffleShelf::FAutoShuffleShelf() : FAutoShuffleObject()
