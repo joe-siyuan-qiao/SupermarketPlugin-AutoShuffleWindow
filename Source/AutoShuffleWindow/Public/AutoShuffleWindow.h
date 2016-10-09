@@ -51,6 +51,9 @@ private:
     
     /** Whitelist of the products */
     static TArray<FAutoShuffleProductGroup>* ProductsWhitelist;
+    
+    /** Add noise to position.Z of the shelf of given name w.r.t. the first shelf (fixed) */
+    static void AddNoiseToShelf(const FString& ShelfName, float NoiseScale);
 
 public:
     /** Static method for parsing the Whitelist written in Json */

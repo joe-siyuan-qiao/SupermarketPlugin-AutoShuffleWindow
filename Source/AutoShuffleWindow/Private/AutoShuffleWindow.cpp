@@ -159,7 +159,12 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
 {
     float Density = FAutoShuffleWindowModule::DensitySpinBox->GetValue();
     float Proxmity = FAutoShuffleWindowModule::ProxmitySpinBox->GetValue();
-    FAutoShuffleWindowModule::ReadWhitelist();
+    bool Result = FAutoShuffleWindowModule::ReadWhitelist();
+    if (!Result)
+    {
+        UE_LOG(LogAutoShuffle, Warning, TEXT("Whitelist read wrong. Module quits."));
+    }
+    AddNoiseToShelf("BP_ShelfMain_002", 50);
     UE_LOG(LogAutoShuffle, Log, TEXT("Density: %f Proxmity: %f"), Density, Proxmity);
 }
 
@@ -246,11 +251,13 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
         {
             NewShelfBase->Add((*BaseValueIt)->AsNumber());
         }
+        FVector NewPosition = NewObjectActor->GetActorLocation();
         ShelvesWhitelist->Add(FAutoShuffleShelf());
         ShelvesWhitelist->Top().SetShelfBase(NewShelfBase);
         ShelvesWhitelist->Top().SetScale(NewScale);
         ShelvesWhitelist->Top().SetName(NewName);
         ShelvesWhitelist->Top().SetObjectActor(NewObjectActor);
+        ShelvesWhitelist->Top().SetPosition(NewPosition);
     }
     
 #ifdef VERBOSE_AUTO_SHUFFLE
@@ -332,6 +339,41 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
     return true;
 }
 
+void FAutoShuffleWindowModule::AddNoiseToShelf(const FString& ShelfName, float NoiseScale)
+{
+    // Get the first shelf's name and its presumably fixed Position.Z
+    if (FAutoShuffleWindowModule::ShelvesWhitelist->Num() < 1)
+    {
+        UE_LOG(LogAutoShuffle, Warning, TEXT("No shelves loaded."));
+        return;
+    }
+    FAutoShuffleShelf& FirstShelf = FAutoShuffleWindowModule::ShelvesWhitelist->operator[](0);
+    FString Name = FirstShelf.GetName();
+    FVector RefPosition = FirstShelf.GetPosition();
+    if (Name == ShelfName)
+    {
+        UE_LOG(LogAutoShuffle, Warning, TEXT("Shelf %s is fixed."), *Name);
+        return;
+    }
+    FAutoShuffleShelf* ShelfToChange = nullptr;
+    for (auto ShelfIt = ShelvesWhitelist->CreateIterator(); ShelfIt; ++ShelfIt)
+    {
+        if (ShelfIt->GetName() == ShelfName)
+        {
+            ShelfToChange = &*ShelfIt;
+            break;
+        }
+    }
+    if (ShelfToChange == nullptr)
+    {
+        UE_LOG(LogAutoShuffle, Warning, TEXT("No shelf matches the name %s"), *ShelfName);
+        return;
+    }
+    FVector NewPosition = ShelfToChange->GetPosition();
+    NewPosition.Z = RefPosition.Z - NoiseScale * (float(FMath::Rand()) / RAND_MAX);
+    ShelfToChange->SetPosition(NewPosition);
+}
+
 TSharedPtr<FJsonObject> FAutoShuffleWindowModule::ParseJSON(const FString& FileContents, const FString& NameForErrors, bool bSilent)
 {
     // Parsing source code from:
@@ -390,6 +432,7 @@ FString FAutoShuffleObject::GetName() const
 void FAutoShuffleObject::SetPosition(FVector& NewPosition)
 {
     Position = NewPosition;
+    ObjectActor->SetActorLocation(Position);
 }
 
 FVector FAutoShuffleObject::GetPosition() const

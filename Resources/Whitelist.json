@@ -2,7 +2,7 @@
     "Whitelist": {
         "Shelves": [{
             "id": 0,
-            "Name": "BP_ShelfMain",
+            "Name": "BP_ShelfMain_001",
             "Repeat": 1,
             "Scale": 5.2,
             "Shelfbase": [
@@ -10,9 +10,21 @@
                 0.26502732240437166,
                 0.46994535519125690,
                 0.67759562841530050,
-                0.8633879781420766
+                0.86338797814207660
             ]
-        }],
+        }, {
+			"id": 1,
+            "Name": "BP_ShelfMain_002",
+            "Repeat": 1,
+            "Scale": 5.2,
+            "Shelfbase": [
+                0.05464480874316935,
+                0.26502732240437166,
+                0.46994535519125690,
+                0.67759562841530050,
+                0.86338797814207660
+			]
+		}],
         "Products": [{
             "id": 0,
             "GroupName": "chips_missvickies",
@@ -22,11 +34,11 @@
                 "Scale": 5.2
             }, {
                 "id": 1,
-                "Name": "chips_missvickies_17",
+                "Name": "chips_missvickies_017",
                 "Scale": 5.2
             }, {
                 "id": 2,
-                "Name": "chips_missvickies_18",
+                "Name": "chips_missvickies_018",
                 "Scale": 5.2
             }]
         }, {
@@ -38,11 +50,11 @@
 				"Scale": 5.2
 			}, {
 				"id": 1,
-				"Name": "chips_pringles_8",
+				"Name": "chips_pringles_008",
 				"Scale": 5.2
 			}, {
 				"id": 2,
-				"Name": "chips_pringles_9",
+				"Name": "chips_pringles_009",
 				"Scale": 5.2
 			}]
         }]
