@@ -19,6 +19,8 @@ static const FName AutoShuffleWindowTabName("AutoShuffleWindow");
 DEFINE_LOG_CATEGORY(LogAutoShuffle);
 
 #define VERBOSE_AUTO_SHUFFLE
+#define AUTO_SHUFFLE_Y_TWO_END_OFFSET 50.
+#define AUTO_SHUFFLE_MAX_TRY_TIMES 1000
 
 void FAutoShuffleWindowModule::StartupModule()
 {
@@ -165,7 +167,7 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
         UE_LOG(LogAutoShuffle, Warning, TEXT("Whitelist read wrong. Module quits."));
     }
     AddNoiseToShelf("BP_ShelfMain_002", 50);
-    UE_LOG(LogAutoShuffle, Log, TEXT("Density: %f Proxmity: %f"), Density, Proxmity);
+    PlaceProducts(Density, Proxmity);
 }
 
 bool FAutoShuffleWindowModule::ReadWhitelist()
@@ -403,6 +405,88 @@ TSharedPtr<FJsonObject> FAutoShuffleWindowModule::ParseJSON(const FString& FileC
             UE_LOG(LogAutoShuffle, Warning, TEXT("Sprite descriptor file '%s' was empty. This sprite cannot be imported."), *NameForErrors);
         }
         return nullptr;
+    }
+}
+
+void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
+{
+    /** Placing the products to the shelf
+     * @param Density: How many products are considerd 0 ~ 1 multiplied by all the stuffs
+     * @param Proxmity: How close the items in the same group are placed 0: one on another 1: randomly placed
+     * @note density and proxmity are w.r.t. one shelf.
+     * @note The shelf must be aligned with x, y, and z, and y is the longest side of the shelf
+     */
+    
+    // iterate through shelves
+    for (auto ShelfIt = FAutoShuffleWindowModule::ShelvesWhitelist->CreateIterator(); ShelfIt; ++ShelfIt)
+    {
+        // find the bounding box of the shelf and the longest between x and y as the places for products to enter from
+        FVector BoundingBoxOrigin, BoundingBoxExtent;
+        ShelfIt->GetObjectActor()->GetActorBounds(false, BoundingBoxOrigin, BoundingBoxExtent);
+#ifdef VERBOSE_AUTO_SHUFFLE
+        UE_LOG(LogAutoShuffle, Log, TEXT("Shelf %s has bounding box %s, %s"), *ShelfIt->GetName(), *BoundingBoxOrigin.ToString(), *BoundingBoxExtent.ToString());
+#endif
+        // find the Z-values of shelf bases
+        TArray<float> ShelfBaseZ;
+        for (auto ShelfBaseIt = ShelfIt->GetShelfBase()->CreateIterator(); ShelfBaseIt; ++ShelfBaseIt)
+        {
+            ShelfBaseZ.Add(*ShelfBaseIt * BoundingBoxExtent.Z * 2.f + BoundingBoxOrigin.Z - BoundingBoxExtent.Z);
+        }
+#ifdef VERBOSE_AUTO_SHUFFLE
+        for (auto ShelfBaseIt = ShelfBaseZ.CreateIterator(); ShelfBaseIt; ++ShelfBaseIt)
+        {
+            UE_LOG(LogAutoShuffle, Log, TEXT("The real Z values of shelf %s: %f"), *ShelfIt->GetName(), *ShelfBaseIt);
+        }
+#endif
+        // iterate through all the product groups
+        for (auto ProductGroupIt = ProductsWhitelist->CreateIterator(); ProductGroupIt; ++ProductGroupIt)
+        {
+            // get a centerilized anchor for placing products
+            int ShelfBaseIdx = FMath::RandRange(0, ShelfBaseZ.Num() - 1);
+            FVector Anchor;
+            Anchor.Z = ShelfBaseZ[ShelfBaseIdx];
+            Anchor.Y = FMath::RandRange(float(BoundingBoxOrigin.Y - BoundingBoxExtent.Y + AUTO_SHUFFLE_Y_TWO_END_OFFSET), float(BoundingBoxOrigin.Y + BoundingBoxExtent.Y - AUTO_SHUFFLE_Y_TWO_END_OFFSET));
+            // iterate through all the products within the current group
+            for (auto ProductIt = ProductGroupIt->GetMembers()->CreateIterator(); ProductIt; ++ProductIt)
+            {
+                // if rand() <= Density, select
+                if (FMath::RandRange(0.f, 1.f) > Density)
+                {
+                    continue;
+                }
+                // if rand() >= Proxmity place it randomly
+                if (FMath::RandRange(0.f, 1.f) >= Proxmity)
+                {
+                    // randomly get a start point on the boundary of the shelf; if collided get another one
+                    FVector ProductStartPoint;
+                    int AlreadyTriedTimes = 0;
+                    while (true)
+                    {
+                        if (AlreadyTriedTimes > AUTO_SHUFFLE_MAX_TRY_TIMES)
+                        {
+                            AlreadyTriedTimes = -1;
+                            break;
+                        }
+                        AlreadyTriedTimes += 1;
+                        int ProductStartPointShelfBaseIdx = FMath::RandRange(0, ShelfBaseZ.Num() - 1);
+                        ProductStartPoint.Z = ShelfBaseZ[ProductStartPointShelfBaseIdx];
+                        ProductStartPoint.Y = FMath::RandRange(float(BoundingBoxOrigin.Y - BoundingBoxExtent.Y + AUTO_SHUFFLE_Y_TWO_END_OFFSET), float(BoundingBoxOrigin.Y + BoundingBoxExtent.Y - AUTO_SHUFFLE_Y_TWO_END_OFFSET));
+                        ProductStartPoint.X = BoundingBoxOrigin.X - BoundingBoxExtent.X;
+                        ProductIt->SetPosition(ProductStartPoint);
+                        if (/** no collision */ true)
+                        {
+                            break;
+                        }
+                    }
+                    // try to push the item inside, until collided
+                }
+                // else place it near the anchor
+                else
+                {
+                    
+                }
+            }
+        }
     }
 }
 
