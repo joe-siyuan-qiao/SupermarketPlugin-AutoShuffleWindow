@@ -473,10 +473,27 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                         ProductStartPoint.Y = FMath::RandRange(float(BoundingBoxOrigin.Y - BoundingBoxExtent.Y + AUTO_SHUFFLE_Y_TWO_END_OFFSET), float(BoundingBoxOrigin.Y + BoundingBoxExtent.Y - AUTO_SHUFFLE_Y_TWO_END_OFFSET));
                         ProductStartPoint.X = BoundingBoxOrigin.X - BoundingBoxExtent.X;
                         ProductIt->SetPosition(ProductStartPoint);
-                        if (/** no collision */ true)
+                        // deal with the offset of the product center and the bottom
+                        FVector ProductOrigin, ProductExtent;
+                        ProductIt->GetObjectActor()->GetActorBounds(false, ProductOrigin, ProductExtent);
+                        float ProductCurrentBottom = ProductOrigin.Z - ProductExtent.Z;
+                        float ProductZLift = ProductStartPoint.Z - ProductCurrentBottom;
+                        ProductStartPoint.Z += ProductZLift;
+                        ProductIt->SetPosition(ProductStartPoint);
+                        // find all the overlapped actors
+                        TArray<AActor*> OverlappingActors;
+                        ProductIt->GetObjectActor()->GetOverlappingActors(OverlappingActors);
+                        UE_LOG(LogAutoShuffle, Log, TEXT("%s has %d overlapping actors"), *ProductIt->GetName(), OverlappingActors.Num());
+                        if (/** no collision */ OverlappingActors.Num() == 0)
                         {
                             break;
                         }
+#ifdef VERBOSE_AUTO_SHUFFLE
+                        for (auto OverlappingActorIt = OverlappingActors.CreateIterator(); OverlappingActorIt; ++OverlappingActorIt)
+                        {
+                            UE_LOG(LogAutoShuffle, Log, TEXT("%s is overlapping with %s"), *ProductIt->GetName(), *(*OverlappingActorIt)->GetName());
+                        }
+#endif
                     }
                     // try to push the item inside, until collided
                 }
