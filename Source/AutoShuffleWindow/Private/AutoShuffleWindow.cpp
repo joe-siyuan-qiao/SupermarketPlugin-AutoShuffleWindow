@@ -185,6 +185,9 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
         FAutoShuffleWindowModule::ProductsWhitelist = nullptr;
     }
     auto EditorWorld = GEditor->GetEditorWorldContext().World();
+    // NOTE: EditorWorld must do InitializeActorsForPlay to make overlapping detection work
+    FURL URL;
+    EditorWorld->InitializeActorsForPlay(URL);
     FString PluginDir = FPaths::Combine(*FPaths::GamePluginsDir(), TEXT("AutoShuffleWindow"));
     FString ResourseDir = FPaths::Combine(*PluginDir, TEXT("Resources"));
     FString FileDir = FPaths::Combine(*ResourseDir, TEXT("Whitelist.json"));
