@@ -20,7 +20,7 @@ DEFINE_LOG_CATEGORY(LogAutoShuffle);
 
 #define VERBOSE_AUTO_SHUFFLE
 #define AUTO_SHUFFLE_Y_TWO_END_OFFSET 50.
-#define AUTO_SHUFFLE_MAX_TRY_TIMES 1000
+#define AUTO_SHUFFLE_MAX_TRY_TIMES 1
 
 void FAutoShuffleWindowModule::StartupModule()
 {
@@ -186,8 +186,11 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
     }
     auto EditorWorld = GEditor->GetEditorWorldContext().World();
     // NOTE: EditorWorld must do InitializeActorsForPlay to make overlapping detection work
-    FURL URL;
-    EditorWorld->InitializeActorsForPlay(URL);
+    if (!EditorWorld->AreActorsInitialized())
+    {
+        FURL URL;
+        EditorWorld->InitializeActorsForPlay(URL);
+    }
     FString PluginDir = FPaths::Combine(*FPaths::GamePluginsDir(), TEXT("AutoShuffleWindow"));
     FString ResourseDir = FPaths::Combine(*PluginDir, TEXT("Resources"));
     FString FileDir = FPaths::Combine(*ResourseDir, TEXT("Whitelist.json"));
