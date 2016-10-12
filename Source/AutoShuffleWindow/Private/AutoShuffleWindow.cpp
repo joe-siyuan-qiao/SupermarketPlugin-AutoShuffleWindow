@@ -21,6 +21,8 @@ DEFINE_LOG_CATEGORY(LogAutoShuffle);
 #define VERBOSE_AUTO_SHUFFLE
 #define AUTO_SHUFFLE_Y_TWO_END_OFFSET 50.
 #define AUTO_SHUFFLE_MAX_TRY_TIMES 1
+#define AUTO_SHUFFLE_INC_STEP 0.5f
+#define AUTO_SHUFFLE_INC_BOUND 1000
 
 void FAutoShuffleWindowModule::StartupModule()
 {
@@ -421,6 +423,7 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
      * @param Proxmity: How close the items in the same group are placed 0: one on another 1: randomly placed
      * @note density and proxmity are w.r.t. one shelf.
      * @note The shelf must be aligned with x, y, and z, and y is the longest side of the shelf
+     * @todo Consider two-side placing and product-shelf associations
      */
     
     // iterate through shelves
@@ -466,9 +469,10 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                     // randomly get a start point on the boundary of the shelf; if collided get another one
                     FVector ProductStartPoint;
                     int AlreadyTriedTimes = 0;
+                    TArray<AActor*> OverlappingActors;
                     while (true)
                     {
-                        if (AlreadyTriedTimes > AUTO_SHUFFLE_MAX_TRY_TIMES)
+                        if (AlreadyTriedTimes >= AUTO_SHUFFLE_MAX_TRY_TIMES)
                         {
                             AlreadyTriedTimes = -1;
                             break;
@@ -487,9 +491,9 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                         ProductStartPoint.Z += ProductZLift;
                         ProductIt->SetPosition(ProductStartPoint);
                         // find all the overlapped actors
-                        TArray<AActor*> OverlappingActors;
                         ProductIt->GetObjectActor()->GetOverlappingActors(OverlappingActors);
                         UE_LOG(LogAutoShuffle, Log, TEXT("%s has %d overlapping actors"), *ProductIt->GetName(), OverlappingActors.Num());
+                        /** @todo consider implementing a collision whitelist, e.g., BP_DemoRoom */
                         if (/** no collision */ OverlappingActors.Num() == 0)
                         {
                             break;
@@ -502,6 +506,20 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
 #endif
                     }
                     // try to push the item inside, until collided
+                    AlreadyTriedTimes = 0;
+                    while (AlreadyTriedTimes++ < AUTO_SHUFFLE_INC_BOUND)
+                    {
+                        ProductIt->GetObjectActor()->GetOverlappingActors(OverlappingActors);
+                        FVector ProductPosition = ProductIt->GetObjectActor()->GetActorLocation();
+                        if (OverlappingActors.Num() != 0)
+                        {
+                            ProductPosition.X -= AUTO_SHUFFLE_INC_STEP;
+                            ProductIt->SetPosition(ProductPosition);
+                            break;
+                        }
+                        ProductPosition.X += AUTO_SHUFFLE_INC_STEP;
+                        ProductIt->SetPosition(ProductPosition);
+                    }
                 }
                 // else place it near the anchor
                 else

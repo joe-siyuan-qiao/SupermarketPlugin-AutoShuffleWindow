@@ -43,20 +43,28 @@
             }]
         }, {
 			"id": 1,
-			"GroupName": "chips_pringles",
+			"GroupName": "chips_box_lays",
 			"Members": [{
 				"id": 0,
-				"Name": "chips_pringles_007",
+				"Name": "chips_box_lays_005",
 				"Scale": 5.2
 			}, {
 				"id": 1,
-				"Name": "chips_pringles_008",
-				"Scale": 5.2
-			}, {
-				"id": 2,
-				"Name": "chips_pringles_009",
+				"Name": "chips_box_lays_006",
 				"Scale": 5.2
 			}]
-        }]
+        }, {
+			"id": 2,
+			"GroupName": "chips_box_olddutch",
+			"Members": [{
+				"id": 0,
+				"Name": "chips_box_olddutch_101",
+				"Scale": 5.2
+			}, {
+				"id": 1,
+				"Name": "chips_box_olddutch_091",
+				"Scale": 5.2
+			}]
+		}]
     }
 }
