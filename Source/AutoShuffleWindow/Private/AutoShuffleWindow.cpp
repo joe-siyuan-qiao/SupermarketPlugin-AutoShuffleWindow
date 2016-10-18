@@ -88,6 +88,8 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
     ProxmitySpinBox->SetMaxSliderValue(1.f);
     ProxmitySpinBox->SetValue(0.5f);
     
+    // set the region of the discarded products to origin
+    DiscardedProductsRegions = FVector(0.f, 0.f, 0.f);
     
     TSharedRef<SButton> Button = SNew(SButton);
     Button->SetVAlign(VAlign_Center);
@@ -158,6 +160,7 @@ TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::DensitySpinBox = SNew(SSpi
 TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::ProxmitySpinBox = SNew(SSpinBox<float>);
 TArray<FAutoShuffleShelf>* FAutoShuffleWindowModule::ShelvesWhitelist = nullptr;
 TArray<FAutoShuffleProductGroup>* FAutoShuffleWindowModule::ProductsWhitelist = nullptr;
+FVector FAutoShuffleWindowModule::DiscardedProductsRegions;
 
 void FAutoShuffleWindowModule::AutoShuffleImplementation()
 {
@@ -469,6 +472,10 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                 // if rand() <= Density, select
                 if (FMath::RandRange(0.f, 1.f) > Density)
                 {
+#ifdef VERBOSE_AUTO_SHUFFLE
+                    UE_LOG(LogAutoShuffle, Log, TEXT("Product %s has been discarded"), *ProductIt->GetName());
+#endif
+                    ProductIt->SetPosition(DiscardedProductsRegions);
                     continue;
                 }
                 // if rand() >= Proxmity place it randomly
@@ -512,6 +519,15 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                             UE_LOG(LogAutoShuffle, Log, TEXT("%s is overlapping with %s"), *ProductIt->GetName(), *(*OverlappingActorIt)->GetName());
                         }
 #endif
+                    }
+                    // if within the maximum try times the product still didn't find the proper place, discard it
+                    if (AlreadyTriedTimes == -1)
+                    {
+#ifdef VERBOSE_AUTO_SHUFFLE
+                        UE_LOG(LogAutoShuffle, Log, TEXT("Product %s has been discarded"), *ProductIt->GetName());
+#endif
+                        ProductIt->SetPosition(DiscardedProductsRegions);
+                        continue;
                     }
                     // try to push the item inside, until collided
                     AlreadyTriedTimes = 0;
@@ -570,9 +586,13 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                         }
                     }
                     // if collision all the time, discard
-                    if (AlreadyTriedTimes == AUTO_SHUFFLE_MAX_TRY_TIMES)
+                    if (AlreadyTriedTimes >= AUTO_SHUFFLE_MAX_TRY_TIMES)
                     {
-                        /** @todo codes to discard the product */
+#ifdef VERBOSE_AUTO_SHUFFLE
+                        UE_LOG(LogAutoShuffle, Log, TEXT("Product %s has been discarded"), *ProductIt->GetName());
+#endif
+                        ProductIt->SetPosition(DiscardedProductsRegions);
+                        continue;
                     }
                     // else push the product deep inside
                     else

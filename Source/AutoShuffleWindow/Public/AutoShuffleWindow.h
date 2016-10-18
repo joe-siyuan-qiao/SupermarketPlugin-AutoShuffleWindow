@@ -43,6 +43,9 @@ private:
     /** SpinBox for Proxmity -- how similar products are placed */
     static TSharedRef<SSpinBox<float>> ProxmitySpinBox;
     
+    /** The regions for the discarded products */
+    static FVector DiscardedProductsRegions;
+    
     /** Read the Whitelist of shelves and products from configure file */
     static bool ReadWhitelist();
     
