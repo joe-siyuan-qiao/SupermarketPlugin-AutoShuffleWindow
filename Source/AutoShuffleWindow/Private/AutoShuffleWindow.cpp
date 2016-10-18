@@ -19,8 +19,8 @@ static const FName AutoShuffleWindowTabName("AutoShuffleWindow");
 DEFINE_LOG_CATEGORY(LogAutoShuffle);
 
 #define VERBOSE_AUTO_SHUFFLE
-#define AUTO_SHUFFLE_Y_TWO_END_OFFSET 50.
-#define AUTO_SHUFFLE_MAX_TRY_TIMES 1
+#define AUTO_SHUFFLE_Y_TWO_END_OFFSET 50.f
+#define AUTO_SHUFFLE_MAX_TRY_TIMES 5
 #define AUTO_SHUFFLE_INC_STEP 0.5f
 #define AUTO_SHUFFLE_INC_BOUND 1000
 
@@ -455,6 +455,7 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
             FVector Anchor;
             Anchor.Z = ShelfBaseZ[ShelfBaseIdx];
             Anchor.Y = FMath::RandRange(float(BoundingBoxOrigin.Y - BoundingBoxExtent.Y + AUTO_SHUFFLE_Y_TWO_END_OFFSET), float(BoundingBoxOrigin.Y + BoundingBoxExtent.Y - AUTO_SHUFFLE_Y_TWO_END_OFFSET));
+            Anchor.X = BoundingBoxOrigin.X - BoundingBoxExtent.X;
             // iterate through all the products within the current group
             for (auto ProductIt = ProductGroupIt->GetMembers()->CreateIterator(); ProductIt; ++ProductIt)
             {
@@ -524,7 +525,67 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                 // else place it near the anchor
                 else
                 {
-                    
+                    TArray<AActor*> OverlappingActors;
+                    int AlreadyTriedTimes = 0;
+                    // loop
+                    while (AlreadyTriedTimes++ < AUTO_SHUFFLE_MAX_TRY_TIMES)
+                    {
+                        // get the current object's bounding box
+                        ProductIt->SetPosition(Anchor);
+                        FVector ProductOrigin, ProductExtent;
+                        ProductIt->GetObjectActor()->GetActorBounds(false, ProductOrigin, ProductExtent);
+                        float ProductCurrenBottom = ProductOrigin.Z - ProductExtent.Z;
+                        float ProductZLift = Anchor.Z - ProductCurrenBottom;
+                        FVector ProductStartPoint = Anchor;
+                        ProductStartPoint.Z += ProductZLift;
+                        ProductIt->SetPosition(ProductStartPoint);
+                        // see if the object could fit the anchor position
+                        ProductIt->GetObjectActor()->GetOverlappingActors(OverlappingActors);
+                        // if yes: place the object and break
+                        if (/** no collision */ OverlappingActors.Num() == 0)
+                        {
+                            break;
+                        }
+                        // else get another anchor point that follows the perceptual organization
+                        else
+                        {
+                            float ProductWidth = ProductExtent.Y * 2.f;
+                            // place the product to the right
+                            if (AlreadyTriedTimes % 2 == 1)
+                            {
+                                Anchor.Y += AlreadyTriedTimes * (ProductWidth + FMath::RandRange(float(AUTO_SHUFFLE_Y_TWO_END_OFFSET * 0.5f), AUTO_SHUFFLE_Y_TWO_END_OFFSET));
+                            }
+                            // place the product to the left
+                            else
+                            {
+                                Anchor.Y -= AlreadyTriedTimes * (ProductWidth + FMath::RandRange(float(AUTO_SHUFFLE_Y_TWO_END_OFFSET * 0.5f), AUTO_SHUFFLE_Y_TWO_END_OFFSET));
+                            }
+                        }
+                    }
+                    // if collision all the time, discard
+                    if (AlreadyTriedTimes == AUTO_SHUFFLE_MAX_TRY_TIMES)
+                    {
+                        /** @todo codes to discard the product */
+                    }
+                    // else push the product deep inside
+                    else
+                    {
+                        // try to push the item inside, until collided
+                        AlreadyTriedTimes = 0;
+                        while (AlreadyTriedTimes++ < AUTO_SHUFFLE_INC_BOUND)
+                        {
+                            ProductIt->GetObjectActor()->GetOverlappingActors(OverlappingActors);
+                            FVector ProductPosition = ProductIt->GetObjectActor()->GetActorLocation();
+                            if (OverlappingActors.Num() != 0)
+                            {
+                                ProductPosition.X -= AUTO_SHUFFLE_INC_STEP;
+                                ProductIt->SetPosition(ProductPosition);
+                                break;
+                            }
+                            ProductPosition.X += AUTO_SHUFFLE_INC_STEP;
+                            ProductIt->SetPosition(ProductPosition);
+                        }
+                    }
                 }
             }
         }
