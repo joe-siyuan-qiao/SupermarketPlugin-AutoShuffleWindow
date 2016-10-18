@@ -155,12 +155,21 @@ public:
     /** Get the group name */
     FString GetName() const;
     
+    /** Set the shelf name */
+    void SetShelfName(FString& NewShelfName);
+    
+    /** Get the shelf name */
+    FString GetShelfName() const;
+    
 private:
     /** The members of the product. Proxmity is used for deciding placing members */
     TArray<FAutoShuffleObject>* Members;
     
     /** The group name */
     FString Name;
+    
+    /** The name of the shelf that this group belongs to */
+    FString ShelfName;
 };
 
 

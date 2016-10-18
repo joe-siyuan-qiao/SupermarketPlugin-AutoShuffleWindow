@@ -297,6 +297,7 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
     {
         TSharedPtr<FJsonObject> ProductObjectJson = (*JsonValueIt)->AsObject();
         FString NewGroupName = ProductObjectJson->GetStringField("GroupName");
+        FString NewShelfName = ProductObjectJson->GetStringField("ShelfName");
         TArray<FAutoShuffleObject>* NewMembers = new TArray<FAutoShuffleObject>();
         TArray<TSharedPtr<FJsonValue>> Members = ProductObjectJson->GetArrayField("Members");
         for (auto MemberValueIt = Members.CreateIterator(); MemberValueIt; ++MemberValueIt)
@@ -331,6 +332,7 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
         ProductsWhitelist->Add(FAutoShuffleProductGroup());
         ProductsWhitelist->Top().SetName(NewGroupName);
         ProductsWhitelist->Top().SetMembers(NewMembers);
+        ProductsWhitelist->Top().SetShelfName(NewShelfName);
     }
     
 #ifdef VERBOSE_AUTO_SHUFFLE
@@ -450,6 +452,11 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
         // iterate through all the product groups
         for (auto ProductGroupIt = ProductsWhitelist->CreateIterator(); ProductGroupIt; ++ProductGroupIt)
         {
+            // check if the name of the shelf that this group belongs to match the current shelf name
+            if (ProductGroupIt->GetShelfName() != ShelfIt->GetName())
+            {
+                continue;
+            }
             // get a centerilized anchor for placing products
             int ShelfBaseIdx = FMath::RandRange(0, ShelfBaseZ.Num() - 1);
             FVector Anchor;
@@ -687,6 +694,8 @@ TArray<float>* FAutoShuffleShelf::GetShelfBase() const
 FAutoShuffleProductGroup::FAutoShuffleProductGroup()
 {
     Members = nullptr;
+    Name = TEXT("Uninitialized Object Name");
+    ShelfName = TEXT("Unintialized Object Name");
 }
 
 FAutoShuffleProductGroup::~FAutoShuffleProductGroup()
@@ -719,6 +728,16 @@ void FAutoShuffleProductGroup::SetName(FString& NewName)
 FString FAutoShuffleProductGroup::GetName() const
 {
     return Name;
+}
+
+void FAutoShuffleProductGroup::SetShelfName(FString& NewShelfName)
+{
+    ShelfName = NewShelfName;
+}
+
+FString FAutoShuffleProductGroup::GetShelfName() const
+{
+    return ShelfName;
 }
 
 #undef LOCTEXT_NAMESPACE
