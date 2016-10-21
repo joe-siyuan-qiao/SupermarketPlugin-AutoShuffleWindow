@@ -543,6 +543,12 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                         ProductIt->GetObjectActor()->GetActorBounds(false, ProductOrigin, ProductExtent);
                         float ProductCurrentBottom = ProductOrigin.Z - ProductExtent.Z;
                         float ProductZLift = ProductStartPoint.Z - ProductCurrentBottom;
+                        float ProductCurrentFront = ProductOrigin.X - ProductExtent.X;
+                        float ProductXlift = ProductStartPoint.X - ProductCurrentFront;
+                        float ProductCurrentOrigin = ProductOrigin.Y;
+                        float ProductYLift = ProductStartPoint.Y - ProductCurrentOrigin;
+                        ProductStartPoint.X += ProductXlift;
+                        ProductStartPoint.Y += ProductYLift;
                         ProductStartPoint.Z += ProductZLift;
                         ProductIt->SetPosition(ProductStartPoint);
                         // find all the overlapped actors
@@ -601,6 +607,12 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                         float ProductCurrenBottom = ProductOrigin.Z - ProductExtent.Z;
                         float ProductZLift = Anchor.Z - ProductCurrenBottom;
                         FVector ProductStartPoint = Anchor;
+                        float ProductCurrentFront = ProductOrigin.X - ProductExtent.X;
+                        float ProductXlift = ProductStartPoint.X - ProductCurrentFront;
+                        float ProductCurrentOrigin = ProductOrigin.Y;
+                        float ProductYLift = ProductStartPoint.Y - ProductCurrentOrigin;
+                        ProductStartPoint.X += ProductXlift;
+                        ProductStartPoint.Y += ProductYLift;
                         ProductStartPoint.Z += ProductZLift;
                         ProductIt->SetPosition(ProductStartPoint);
                         ProductIt->SetShelfOffset(ShelfOffsetZ[ShelfBaseIdx]);

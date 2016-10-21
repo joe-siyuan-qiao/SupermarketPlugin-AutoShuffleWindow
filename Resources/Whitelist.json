@@ -55,7 +55,11 @@
                 "id": 2,
                 "Name": "chips_missvickies_018",
                 "Scale": 4.0
-            }]
+            }, {
+				"id": 3,
+				"Name": "chips_missvickies_019",
+				"Scale": 4.0
+			}]
         }, {
             "id": 1,
             "GroupName": "chips_box_lays",
@@ -80,6 +84,22 @@
             }, {
                 "id": 1,
                 "Name": "chips_box_olddutch_091",
+                "Scale": 5.2
+            }, {
+                "id": 2,
+                "Name": "chips_box_olddutch_092",
+                "Scale": 5.2
+        	}, {
+                "id": 3,
+                "Name": "chips_box_olddutch_093",
+                "Scale": 5.2
+            }, {
+                "id": 4,
+                "Name": "chips_box_olddutch_094",
+                "Scale": 5.2
+            }, {
+                "id": 5,
+                "Name": "chips_box_olddutch_095",
                 "Scale": 5.2
             }]
         }]
