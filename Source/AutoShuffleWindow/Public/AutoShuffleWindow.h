@@ -122,6 +122,13 @@ public:
     /** Reset the bIsDiscarded */
     void ResetDiscard();
     
+    /** Set the fShelfOffset */
+    void SetShelfOffset(float NewShelfOffset);
+    
+    /** Get the fShelfOffset */
+    float GetShelfOffset() const;
+    
+    
 private:
     /** The rendering scale of the shelf in the editor world */
     float Scale;
@@ -140,6 +147,12 @@ private:
     
     /** Whether this object has been discarded */
     bool bIsDiscarded;
+    
+    /** Because the collision model of the shelf isn't perfect, we need to add offset to the object 
+     *  to make it touch the surface of the shelf even if collision is already detected. 
+     *  @note this value is not a relative value. It is the real value. 
+     *  @todo find more elegant way of doing this */
+    float fShelfOffset;
 };
 
 class FAutoShuffleShelf : public FAutoShuffleObject
@@ -155,9 +168,18 @@ public:
     /** Set the shelf base */
     void SetShelfBase(TArray<float>* NewShelfBase);
     
+    /** Get the shelf offset */
+    TArray<float>* GetShelfOffset() const;
+    
+    /** Set the shelf offset */
+    void SetShelfOffset(TArray<float>* NewShelfOffset);
+    
 private:
     /** The relative heights of each level of bases measured from bottom */
     TArray<float>* ShelfBase;
+    
+    /** The relative offset of each level of bases measured from bottom */
+    TArray<float>* ShelfOffset;
 };
 
 class FAutoShuffleProductGroup

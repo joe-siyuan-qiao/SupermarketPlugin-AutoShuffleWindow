@@ -183,7 +183,6 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
     }
     AddNoiseToShelf("BP_ShelfMain_002", 50);
     PlaceProducts(Density, Proxmity);
-    // LowerProducts();
     // Expand all the Products
     for (int ExpendIdx = 0; ExpendIdx < AUTO_SHUFFLE_EXPANSION_BOUND; ++ExpendIdx)
     {
@@ -198,6 +197,7 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
             }
         }
     }
+    LowerProducts();
 }
 
 bool FAutoShuffleWindowModule::ReadWhitelist()
@@ -289,9 +289,16 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
         {
             NewShelfBase->Add((*BaseValueIt)->AsNumber());
         }
+        TArray<float>* NewShelfOffset = new TArray<float>();
+        TArray<TSharedPtr<FJsonValue>> Shelfoffset = ShelfObjectJson->GetArrayField("Shelfoffset");
+        for (auto OffsetValueIt = Shelfoffset.CreateIterator(); OffsetValueIt; ++OffsetValueIt)
+        {
+            NewShelfOffset->Add((*OffsetValueIt)->AsNumber());
+        }
         FVector NewPosition = NewObjectActor->GetActorLocation();
         ShelvesWhitelist->Add(FAutoShuffleShelf());
         ShelvesWhitelist->Top().SetShelfBase(NewShelfBase);
+        ShelvesWhitelist->Top().SetShelfOffset(NewShelfOffset);
         ShelvesWhitelist->Top().SetName(NewName);
         ShelvesWhitelist->Top().SetObjectActor(NewObjectActor);
         ShelvesWhitelist->Top().SetPosition(NewPosition);
@@ -471,6 +478,12 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
         {
             ShelfBaseZ.Add(*ShelfBaseIt * BoundingBoxExtent.Z * 2.f + BoundingBoxOrigin.Z - BoundingBoxExtent.Z);
         }
+        // find the Z offset of shelf bases
+        TArray<float> ShelfOffsetZ;
+        for (auto ShelfOffsetIt = ShelfIt->GetShelfOffset()->CreateIterator(); ShelfOffsetIt; ++ShelfOffsetIt)
+        {
+            ShelfOffsetZ.Add(*ShelfOffsetIt * BoundingBoxExtent.Z * 2.f);
+        }
 #ifdef VERBOSE_AUTO_SHUFFLE
         for (auto ShelfBaseIt = ShelfBaseZ.CreateIterator(); ShelfBaseIt; ++ShelfBaseIt)
         {
@@ -524,6 +537,7 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                         ProductStartPoint.Y = FMath::RandRange(float(BoundingBoxOrigin.Y - BoundingBoxExtent.Y + AUTO_SHUFFLE_Y_TWO_END_OFFSET), float(BoundingBoxOrigin.Y + BoundingBoxExtent.Y - AUTO_SHUFFLE_Y_TWO_END_OFFSET));
                         ProductStartPoint.X = BoundingBoxOrigin.X - BoundingBoxExtent.X;
                         ProductIt->SetPosition(ProductStartPoint);
+                        ProductIt->SetShelfOffset(ShelfOffsetZ[ProductStartPointShelfBaseIdx]);
                         // deal with the offset of the product center and the bottom
                         FVector ProductOrigin, ProductExtent;
                         ProductIt->GetObjectActor()->GetActorBounds(false, ProductOrigin, ProductExtent);
@@ -589,6 +603,7 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                         FVector ProductStartPoint = Anchor;
                         ProductStartPoint.Z += ProductZLift;
                         ProductIt->SetPosition(ProductStartPoint);
+                        ProductIt->SetShelfOffset(ShelfOffsetZ[ShelfBaseIdx]);
                         // see if the object could fit the anchor position
                         ProductIt->GetObjectActor()->GetOverlappingActors(OverlappingActors);
                         // if yes: place the object and break
@@ -655,21 +670,9 @@ void FAutoShuffleWindowModule::LowerProducts()
         {
             if (!ProductIt->IsDiscarded())
             {
-                TArray<AActor*> OverlappingActors;
-                int AlreadyTriedTimes = 0;
-                while (AlreadyTriedTimes++ < AUTO_SHUFFLE_INC_BOUND)
-                {
-                    FVector Position = ProductIt->GetPosition();
-                    Position.Z -= AUTO_SHUFFLE_INC_STEP * 0.1f;
-                    ProductIt->SetPosition(Position);
-                    ProductIt->GetObjectActor()->GetOverlappingActors(OverlappingActors);
-                    if (OverlappingActors.Num() != 0)
-                    {
-                        Position.Z += AUTO_SHUFFLE_INC_STEP * 0.1f;
-                        ProductIt->SetPosition(Position);
-                        break;
-                    }
-                }
+                FVector Position = ProductIt->GetPosition();
+                Position.Z -= ProductIt->GetShelfOffset();
+                ProductIt->SetPosition(Position);
             }
         }
     }
@@ -683,6 +686,7 @@ FAutoShuffleObject::FAutoShuffleObject()
     Rotation = FVector(0.f, 0.f, 0.f);
     ObjectActor = nullptr;
     bIsDiscarded = false;
+    fShelfOffset = 0.f;
 }
 
 FAutoShuffleObject::~FAutoShuffleObject()
@@ -834,9 +838,20 @@ void FAutoShuffleObject::ResetDiscard()
     bIsDiscarded = false;
 }
 
+void FAutoShuffleObject::SetShelfOffset(float NewShelfOffset)
+{
+    fShelfOffset = NewShelfOffset;
+}
+
+float FAutoShuffleObject::GetShelfOffset() const
+{
+    return fShelfOffset;
+}
+
 FAutoShuffleShelf::FAutoShuffleShelf() : FAutoShuffleObject()
 {
     ShelfBase = nullptr;
+    ShelfOffset = nullptr;
 }
 
 FAutoShuffleShelf::~FAutoShuffleShelf()
@@ -844,6 +859,10 @@ FAutoShuffleShelf::~FAutoShuffleShelf()
     if (ShelfBase != nullptr)
     {
         delete ShelfBase;
+    }
+    if (ShelfOffset != nullptr)
+    {
+        delete ShelfOffset;
     }
 }
 
@@ -859,6 +878,20 @@ void FAutoShuffleShelf::SetShelfBase(TArray<float>* NewShelfBase)
 TArray<float>* FAutoShuffleShelf::GetShelfBase() const
 {
     return ShelfBase;
+}
+
+void FAutoShuffleShelf::SetShelfOffset(TArray<float> *NewShelfOffset)
+{
+    if (ShelfOffset != nullptr)
+    {
+        delete ShelfOffset;
+    }
+    ShelfOffset = NewShelfOffset;
+}
+
+TArray<float>* FAutoShuffleShelf::GetShelfOffset() const
+{
+    return ShelfOffset;
 }
 
 FAutoShuffleProductGroup::FAutoShuffleProductGroup()
