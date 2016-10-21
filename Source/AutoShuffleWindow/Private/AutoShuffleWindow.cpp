@@ -23,6 +23,7 @@ DEFINE_LOG_CATEGORY(LogAutoShuffle);
 #define AUTO_SHUFFLE_MAX_TRY_TIMES 5
 #define AUTO_SHUFFLE_INC_STEP 0.5f
 #define AUTO_SHUFFLE_INC_BOUND 1000
+#define AUTO_SHUFFLE_EXPANSION_BOUND 20
 
 void FAutoShuffleWindowModule::StartupModule()
 {
@@ -171,8 +172,32 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
     {
         UE_LOG(LogAutoShuffle, Warning, TEXT("Whitelist read wrong. Module quits."));
     }
+    // Shrink all the Products
+    for (auto ProductGroupIt = ProductsWhitelist->CreateIterator(); ProductGroupIt; ++ProductGroupIt)
+    {
+        for (auto ProductIt = ProductGroupIt->GetMembers()->CreateIterator(); ProductIt; ++ProductIt)
+        {
+            ProductIt->ResetDiscard();
+            ProductIt->ShrinkScale();
+        }
+    }
     AddNoiseToShelf("BP_ShelfMain_002", 50);
     PlaceProducts(Density, Proxmity);
+    // LowerProducts();
+    // Expand all the Products
+    for (int ExpendIdx = 0; ExpendIdx < AUTO_SHUFFLE_EXPANSION_BOUND; ++ExpendIdx)
+    {
+        for (auto ProductGroupIt = ProductsWhitelist->CreateIterator(); ProductGroupIt; ++ProductGroupIt)
+        {
+            for (auto ProductIt = ProductGroupIt->GetMembers()->CreateIterator(); ProductIt; ++ProductIt)
+            {
+                if (!ProductIt->IsDiscarded())
+                {
+                    ProductIt->ExpandScale();
+                }
+            }
+        }
+    }
 }
 
 bool FAutoShuffleWindowModule::ReadWhitelist()
@@ -267,10 +292,10 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
         FVector NewPosition = NewObjectActor->GetActorLocation();
         ShelvesWhitelist->Add(FAutoShuffleShelf());
         ShelvesWhitelist->Top().SetShelfBase(NewShelfBase);
-        ShelvesWhitelist->Top().SetScale(NewScale);
         ShelvesWhitelist->Top().SetName(NewName);
         ShelvesWhitelist->Top().SetObjectActor(NewObjectActor);
         ShelvesWhitelist->Top().SetPosition(NewPosition);
+        ShelvesWhitelist->Top().SetScale(NewScale);
     }
     
 #ifdef VERBOSE_AUTO_SHUFFLE
@@ -329,8 +354,8 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
             float NewScale = ProductMember->GetNumberField("Scale");
             NewMembers->Add(FAutoShuffleObject());
             NewMembers->Top().SetName(NewName);
-            NewMembers->Top().SetScale(NewScale);
             NewMembers->Top().SetObjectActor(NewObjectActor);
+            NewMembers->Top().SetScale(NewScale);
         }
         ProductsWhitelist->Add(FAutoShuffleProductGroup());
         ProductsWhitelist->Top().SetName(NewGroupName);
@@ -476,6 +501,7 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                     UE_LOG(LogAutoShuffle, Log, TEXT("Product %s has been discarded"), *ProductIt->GetName());
 #endif
                     ProductIt->SetPosition(DiscardedProductsRegions);
+                    ProductIt->Discard();
                     continue;
                 }
                 // if rand() >= Proxmity place it randomly
@@ -527,6 +553,7 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                         UE_LOG(LogAutoShuffle, Log, TEXT("Product %s has been discarded"), *ProductIt->GetName());
 #endif
                         ProductIt->SetPosition(DiscardedProductsRegions);
+                        ProductIt->Discard();
                         continue;
                     }
                     // try to push the item inside, until collided
@@ -592,6 +619,7 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                         UE_LOG(LogAutoShuffle, Log, TEXT("Product %s has been discarded"), *ProductIt->GetName());
 #endif
                         ProductIt->SetPosition(DiscardedProductsRegions);
+                        ProductIt->Discard();
                         continue;
                     }
                     // else push the product deep inside
@@ -619,6 +647,34 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
     }
 }
 
+void FAutoShuffleWindowModule::LowerProducts()
+{
+    for (auto ProductGroupIt = ProductsWhitelist->CreateIterator(); ProductGroupIt; ++ProductGroupIt)
+    {
+        for (auto ProductIt = ProductGroupIt->GetMembers()->CreateIterator(); ProductIt; ++ProductIt)
+        {
+            if (!ProductIt->IsDiscarded())
+            {
+                TArray<AActor*> OverlappingActors;
+                int AlreadyTriedTimes = 0;
+                while (AlreadyTriedTimes++ < AUTO_SHUFFLE_INC_BOUND)
+                {
+                    FVector Position = ProductIt->GetPosition();
+                    Position.Z -= AUTO_SHUFFLE_INC_STEP * 0.1f;
+                    ProductIt->SetPosition(Position);
+                    ProductIt->GetObjectActor()->GetOverlappingActors(OverlappingActors);
+                    if (OverlappingActors.Num() != 0)
+                    {
+                        Position.Z += AUTO_SHUFFLE_INC_STEP * 0.1f;
+                        ProductIt->SetPosition(Position);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
 FAutoShuffleObject::FAutoShuffleObject()
 {
     Scale = 1.f;
@@ -626,6 +682,7 @@ FAutoShuffleObject::FAutoShuffleObject()
     Position = FVector(0.f, 0.f, 0.f);
     Rotation = FVector(0.f, 0.f, 0.f);
     ObjectActor = nullptr;
+    bIsDiscarded = false;
 }
 
 FAutoShuffleObject::~FAutoShuffleObject()
@@ -666,6 +723,84 @@ FVector FAutoShuffleObject::GetRotation() const
 void FAutoShuffleObject::SetScale(float NewScale)
 {
     Scale = NewScale;
+    if (ObjectActor != nullptr)
+    {
+        ObjectActor->SetActorScale3D(FVector(Scale, Scale, Scale));
+    }
+}
+
+void FAutoShuffleObject::ShrinkScale()
+{
+    // shrink the scale on z to 1/3 of x and/or y
+    if (ObjectActor != nullptr)
+    {
+        ObjectActor->SetActorScale3D(FVector(Scale, Scale, Scale * 0.3f));
+    }
+}
+
+void FAutoShuffleObject::ExpandScale()
+{
+    /** This function restores the object scale up to the scale indicated by private variable Scale.
+     *  The goal is to expand the scale while the bottom is kept. So it's like the product growing up
+     *  from the shelf 
+     *  @note the scaling process does not guarantee the position unchanged
+     */
+    if (ObjectActor != nullptr)
+    {
+        // get the bottom and the Origin.XY of the product. These are the variables that the product must keep
+        FVector ProductOrigin, ProductExtent;
+        ObjectActor->GetActorBounds(false, ProductOrigin, ProductExtent);
+        float ConstBottomLine = ProductOrigin.Z - ProductExtent.Z;
+        float ProductOriginX = ProductOrigin.X;
+        float ProductOriginY = ProductOrigin.Y;
+        // change the scale.x and scale.y to scale.z to start the expansion
+        float CurrentScale = ObjectActor->GetActorScale3D().Z;
+        ObjectActor->SetActorScale3D(FVector(CurrentScale, CurrentScale, CurrentScale));
+        // loop
+        while (true)
+        {
+            // Get the overlapping actors
+            TArray<AActor*> OverlappingActors;
+            ObjectActor->GetOverlappingActors(OverlappingActors);
+            // if overlapped, we stop
+            if (OverlappingActors.Num() != 0)
+            {
+                CurrentScale -= 0.1;
+                ObjectActor->SetActorScale3D(FVector(CurrentScale, CurrentScale, CurrentScale));
+                ObjectActor->GetActorBounds(false, ProductOrigin, ProductExtent);
+                float CurrentBottomLine = ProductOrigin.Z - ProductExtent.Z;
+                float ProductZLift = ConstBottomLine - CurrentBottomLine;
+                Position.Z += ProductZLift;
+                Position.X += ProductOriginX - ProductOrigin.X;
+                Position.Y += ProductOriginY - ProductOrigin.Y;
+                this->SetPosition(Position);
+                break;
+            }
+            // if the currentscale is already the Scale specified in the whitelist, we stop
+            if (CurrentScale >= Scale)
+            {
+                ObjectActor->SetActorScale3D(FVector(Scale, Scale, Scale));
+                ObjectActor->GetActorBounds(false, ProductOrigin, ProductExtent);
+                float CurrentBottomLine = ProductOrigin.Z - ProductExtent.Z;
+                float ProductZLift = ConstBottomLine - CurrentBottomLine;
+                Position.Z += ProductZLift;
+                Position.X += ProductOriginX - ProductOrigin.X;
+                Position.Y += ProductOriginY - ProductOrigin.Y;
+                this->SetPosition(Position);
+                break;
+            }
+            // otherwise, we increase the scale wholely, then adjust the bottom to the ConstBottomLine and the origin.XY to the original Origin.XY
+            CurrentScale += 0.1;
+            ObjectActor->SetActorScale3D(FVector(CurrentScale, CurrentScale, CurrentScale));
+            ObjectActor->GetActorBounds(false, ProductOrigin, ProductExtent);
+            float CurrentBottomLine = ProductOrigin.Z - ProductExtent.Z;
+            float ProductZLift = ConstBottomLine - CurrentBottomLine;
+            Position.Z += ProductZLift;
+            Position.X += ProductOriginX - ProductOrigin.X;
+            Position.Y += ProductOriginY - ProductOrigin.Y;
+            this->SetPosition(Position);
+        }
+    }
 }
 
 float FAutoShuffleObject::GetScale() const
@@ -682,6 +817,21 @@ void FAutoShuffleObject::SetObjectActor(AActor* NewObjectActor)
 AActor* FAutoShuffleObject::GetObjectActor() const
 {
     return ObjectActor;
+}
+
+void FAutoShuffleObject::Discard()
+{
+    bIsDiscarded = true;
+}
+
+bool FAutoShuffleObject::IsDiscarded()
+{
+    return bIsDiscarded;
+}
+
+void FAutoShuffleObject::ResetDiscard()
+{
+    bIsDiscarded = false;
 }
 
 FAutoShuffleShelf::FAutoShuffleShelf() : FAutoShuffleObject()

@@ -60,6 +60,9 @@ private:
     
     /** Place the products onto the shelves */
     static void PlaceProducts(float Density, float Proxmity);
+    
+    /** Lower all the products so that they can almost touch the shevles */
+    static void LowerProducts();
 
 public:
     /** Static method for parsing the Whitelist written in Json */
@@ -98,11 +101,26 @@ public:
     /** Get the scale */
     float GetScale() const;
     
+    /** Shrink the scale: keep x, y and 1/3 z. Used to fit to the shelf */
+    void ShrinkScale();
+    
+    /** Expand the Scale: set scale of x, y to z, then expand as big as possible before original scale of x and y. Used to fit to the shelf */
+    void ExpandScale();
+    
     /** Set the ObjectActor */
     void SetObjectActor(AActor* NewObjectActor);
     
     /** Get the ObjectActor */
     AActor* GetObjectActor() const;
+    
+    /** Set the bIsDiscarded */
+    void Discard();
+    
+    /** Get the bIsDiscarded */
+    bool IsDiscarded();
+    
+    /** Reset the bIsDiscarded */
+    void ResetDiscard();
     
 private:
     /** The rendering scale of the shelf in the editor world */
@@ -119,6 +137,9 @@ private:
     
     /** Pointer to the AActor in the Editor World */
     AActor* ObjectActor;
+    
+    /** Whether this object has been discarded */
+    bool bIsDiscarded;
 };
 
 class FAutoShuffleShelf : public FAutoShuffleObject
