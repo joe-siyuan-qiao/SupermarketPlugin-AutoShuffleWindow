@@ -13,7 +13,7 @@
                 0.8938797814207660
             ]
         }, {
-			"id": 1,
+            "id": 1,
             "Name": "BP_ShelfMain_002",
             "Repeat": 1,
             "Scale": 5.2,
@@ -23,12 +23,12 @@
                 0.51994535519125690,
                 0.72759562841530050,
                 0.8938797814207660
-			]
-		}],
+            ]
+        }],
         "Products": [{
             "id": 0,
             "GroupName": "chips_missvickies",
-			"ShelfName": "BP_ShelfMain_001",
+            "ShelfName": "BP_ShelfMain_001",
             "Members": [{
                 "id": 0,
                 "Name": "chips_missvickies_016",
@@ -43,31 +43,31 @@
                 "Scale": 4.0
             }]
         }, {
-			"id": 1,
-			"GroupName": "chips_box_lays",
-			"ShelfName": "BP_ShelfMain_001",
-			"Members": [{
-				"id": 0,
-				"Name": "chips_box_lays_005",
-				"Scale": 5.2
-			}, {
-				"id": 1,
-				"Name": "chips_box_lays_006",
-				"Scale": 5.2
-			}]
+            "id": 1,
+            "GroupName": "chips_box_lays",
+            "ShelfName": "BP_ShelfMain_001",
+            "Members": [{
+                "id": 0,
+                "Name": "chips_box_lays_005",
+                "Scale": 5.2
+            }, {
+                "id": 1,
+                "Name": "chips_box_lays_006",
+                "Scale": 5.2
+            }]
         }, {
-			"id": 2,
-			"GroupName": "chips_box_olddutch",
-			"ShelfName": "BP_ShelfMain_002",
-			"Members": [{
-				"id": 0,
-				"Name": "chips_box_olddutch_101",
-				"Scale": 5.2
-			}, {
-				"id": 1,
-				"Name": "chips_box_olddutch_091",
-				"Scale": 5.2
-			}]
-		}]
+            "id": 2,
+            "GroupName": "chips_box_olddutch",
+            "ShelfName": "BP_ShelfMain_002",
+            "Members": [{
+                "id": 0,
+                "Name": "chips_box_olddutch_101",
+                "Scale": 5.2
+            }, {
+                "id": 1,
+                "Name": "chips_box_olddutch_091",
+                "Scale": 5.2
+            }]
+        }]
     }
 }
