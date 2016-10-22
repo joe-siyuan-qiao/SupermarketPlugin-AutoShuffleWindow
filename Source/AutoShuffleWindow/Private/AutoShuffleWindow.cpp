@@ -171,13 +171,16 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
     if (!Result)
     {
         UE_LOG(LogAutoShuffle, Warning, TEXT("Whitelist read wrong. Module quits."));
+        return;
     }
-    // Shrink all the Products
+    // Activate, put aside and shrink all the Products
     for (auto ProductGroupIt = ProductsWhitelist->CreateIterator(); ProductGroupIt; ++ProductGroupIt)
     {
         for (auto ProductIt = ProductGroupIt->GetMembers()->CreateIterator(); ProductIt; ++ProductIt)
         {
             ProductIt->ResetDiscard();
+            ProductIt->ResetOnShelf();
+            ProductIt->SetPosition(DiscardedProductsRegions);
             ProductIt->ShrinkScale();
         }
     }
@@ -197,6 +200,7 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
             }
         }
     }
+    OrganizeProducts();
     LowerProducts();
 }
 
@@ -515,6 +519,7 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
 #endif
                     ProductIt->SetPosition(DiscardedProductsRegions);
                     ProductIt->Discard();
+                    ProductIt->ResetOnShelf();
                     continue;
                 }
                 // if rand() >= Proxmity place it randomly
@@ -574,8 +579,10 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
 #endif
                         ProductIt->SetPosition(DiscardedProductsRegions);
                         ProductIt->Discard();
+                        ProductIt->ResetOnShelf();
                         continue;
                     }
+                    ProductIt->SetOnShelf();
                     // try to push the item inside, until collided
                     AlreadyTriedTimes = 0;
                     while (AlreadyTriedTimes++ < AUTO_SHUFFLE_INC_BOUND)
@@ -647,12 +654,14 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
 #endif
                         ProductIt->SetPosition(DiscardedProductsRegions);
                         ProductIt->Discard();
+                        ProductIt->ResetOnShelf();
                         continue;
                     }
                     // else push the product deep inside
                     else
                     {
                         // try to push the item inside, until collided
+                        ProductIt->SetOnShelf();
                         AlreadyTriedTimes = 0;
                         while (AlreadyTriedTimes++ < AUTO_SHUFFLE_INC_BOUND)
                         {
@@ -690,6 +699,84 @@ void FAutoShuffleWindowModule::LowerProducts()
     }
 }
 
+void FAutoShuffleWindowModule::OrganizeProducts()
+{
+    // iterate through all the shelves
+    for (auto ShelfIt = ShelvesWhitelist->CreateIterator(); ShelfIt; ++ShelfIt)
+    {
+        FString ShelfName = ShelfIt->GetName();
+        FVector ShelfOrigin, ShelfExtent;
+        ShelfIt->GetObjectActor()->GetActorBounds(false, ShelfOrigin, ShelfExtent);
+        // collect all the products' actors which are on shelf and have not been discarded
+        TArray<AActor*> Products;
+        Products.Reset();
+        for (auto ProductGroupIt = ProductsWhitelist->CreateIterator(); ProductGroupIt; ++ProductGroupIt)
+        {
+            if (ProductGroupIt->GetShelfName() != ShelfName)
+            {
+                continue;
+            }
+            for (auto ProductIt = ProductGroupIt->GetMembers()->CreateIterator(); ProductIt; ++ProductIt)
+            {
+                if (ProductIt->IsOnShelf() && !ProductIt->IsDiscarded() && ProductIt->GetObjectActor() != nullptr)
+                {
+                    Products.Add(ProductIt->GetObjectActor());
+                }
+            }
+        }
+        // sort them according to bound.Y from low to high
+        Products.Sort(OrganizeProductsPredicate);
+
+        // iterate through all the sorted actors
+        for (auto ProductIt = Products.CreateIterator(); ProductIt; ++ProductIt)
+        {
+            // loop
+            while (true)
+            {
+                // try to push them to left
+                FVector Position = (*ProductIt)->GetActorLocation();
+                Position.Y -= AUTO_SHUFFLE_INC_STEP;
+                (*ProductIt)->SetActorLocation(Position);
+                // check if the object is still in the bound
+                FVector ProductOrigin, ProductExtent;
+                (*ProductIt)->GetActorBounds(false, ProductOrigin, ProductExtent);
+                bool IsInBound = ProductOrigin.Y - ProductExtent.Y >= ShelfOrigin.Y - ShelfExtent.Y;
+                // check if there's no collision
+                TArray<AActor*> OverlappingActors;
+                (*ProductIt)->GetOverlappingActors(OverlappingActors);
+                bool HasNoCollision = OverlappingActors.Num() == 0;
+                // if not in the bound or has collision, restore and proceed to the next product
+                if (!IsInBound || !HasNoCollision)
+                {
+                    Position.Y += AUTO_SHUFFLE_INC_STEP;
+                    (*ProductIt)->SetActorLocation(Position);
+                    break;
+                }
+            }
+        }
+    }
+    // update the class FAUtoSHuffleObject
+    for (auto ProductGroupIt = ProductsWhitelist->CreateIterator(); ProductGroupIt; ++ProductGroupIt)
+    {
+        for (auto ProductIt = ProductGroupIt->GetMembers()->CreateIterator(); ProductIt; ++ProductIt)
+        {
+            if (ProductIt->GetObjectActor() != nullptr)
+            {
+                FVector Position = ProductIt->GetObjectActor()->GetActorLocation();
+                ProductIt->SetPosition(Position);
+            }
+        }
+    }
+}
+
+bool FAutoShuffleWindowModule::OrganizeProductsPredicate(const AActor &Actor1, const AActor &Actor2)
+{
+    FVector Actor1Origin, Actor1Extent, Actor2Origin, Actor2Extent;
+    Actor1.GetActorBounds(false, Actor1Origin, Actor1Extent);
+    Actor2.GetActorBounds(false, Actor2Origin, Actor2Extent);
+    return Actor1Origin.Y - Actor1Extent.Y < Actor2Origin.Y - Actor2Extent.Y;
+}
+
 FAutoShuffleObject::FAutoShuffleObject()
 {
     Scale = 1.f;
@@ -698,6 +785,7 @@ FAutoShuffleObject::FAutoShuffleObject()
     Rotation = FVector(0.f, 0.f, 0.f);
     ObjectActor = nullptr;
     bIsDiscarded = false;
+    bIsOnShelf = false;
     fShelfOffset = 0.f;
 }
 
@@ -858,6 +946,47 @@ void FAutoShuffleObject::SetShelfOffset(float NewShelfOffset)
 float FAutoShuffleObject::GetShelfOffset() const
 {
     return fShelfOffset;
+}
+
+bool FAutoShuffleObject::IsContainedIn(FVector &BoundOrigin, FVector &BoundExtent)
+{
+    if (ObjectActor != nullptr)
+    {
+        FVector ObjectOrigin, ObjectExtent;
+        ObjectActor->GetActorBounds(false, ObjectOrigin, ObjectExtent);
+        if (BoundOrigin.X - BoundExtent.X > ObjectOrigin.X - ObjectExtent.X)
+            return false;
+        if (BoundOrigin.X + BoundExtent.X < ObjectOrigin.X + ObjectExtent.X)
+            return false;
+        if (BoundOrigin.Y - BoundExtent.Y > ObjectOrigin.Y - ObjectOrigin.Y)
+            return false;
+        if (BoundOrigin.Y + BoundExtent.Y < ObjectOrigin.Y + ObjectExtent.Y)
+            return false;
+        if (BoundOrigin.Z - BoundExtent.Z > ObjectOrigin.Z - ObjectExtent.Z)
+            return false;
+        if (BoundOrigin.Z + BoundExtent.Z < ObjectOrigin.Z + ObjectExtent.Z)
+            return false;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool FAutoShuffleObject::IsOnShelf() const
+{
+    return bIsOnShelf;
+}
+
+void FAutoShuffleObject::SetOnShelf()
+{
+    bIsOnShelf = true;
+}
+
+void FAutoShuffleObject::ResetOnShelf()
+{
+    bIsOnShelf = false;
 }
 
 FAutoShuffleShelf::FAutoShuffleShelf() : FAutoShuffleObject()

@@ -63,6 +63,12 @@ private:
     
     /** Lower all the products so that they can almost touch the shevles */
     static void LowerProducts();
+    
+    /** Organize the objects that are already on the shelves -- push all of them to left of the shelf until collided. Should respond to a checkbox on the plugin window */
+    static void OrganizeProducts();
+    
+    /** Predicate used for sorting AActors in OrganizeProducts */
+    static bool OrganizeProductsPredicate(const AActor &Actor1, const AActor &Actor2);
 
 public:
     /** Static method for parsing the Whitelist written in Json */
@@ -128,6 +134,18 @@ public:
     /** Get the fShelfOffset */
     float GetShelfOffset() const;
     
+    /** Return if the object is contained in the given bound */
+    bool IsContainedIn(FVector& BoundOrigin, FVector& BoundExtent);
+    
+    /** Return if the object is on shelf */
+    bool IsOnShelf() const;
+    
+    /** Reset the bIsOnShelf */
+    void ResetOnShelf();
+    
+    /** Put on Shelf */
+    void SetOnShelf();
+    
     
 private:
     /** The rendering scale of the shelf in the editor world */
@@ -153,6 +171,9 @@ private:
      *  @note this value is not a relative value. It is the real value. 
      *  @todo find more elegant way of doing this */
     float fShelfOffset;
+    
+    /** Whether the object is already placed on the shelf */
+    bool bIsOnShelf;
 };
 
 class FAutoShuffleShelf : public FAutoShuffleObject
