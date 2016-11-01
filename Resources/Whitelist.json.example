@@ -41,167 +41,127 @@
         }],
         "Products": [{
             "id": 0,
-            "GroupName": "chips_can_lays",
+            "GroupName": "chips_barbaras",
             "ShelfName": "BP_ShelfMain_001",
             "Members": [{
                 "id": 0,
-                "Name": "chips_can_lays_001",
+                "Name": "chips_barbaras_001",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_002",
+                "Name": "chips_barbaras_002",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_003",
+                "Name": "chips_barbaras_003",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_004",
+                "Name": "chips_barbaras_004",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_005",
+                "Name": "chips_barbaras_005",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_006",
+                "Name": "chips_barbaras_006",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_007",
+                "Name": "chips_barbaras_007",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_008",
+                "Name": "chips_barbaras_008",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_009",
+                "Name": "chips_barbaras_009",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_010",
+                "Name": "chips_barbaras_010",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_011",
+                "Name": "chips_barbaras_011",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_012",
+                "Name": "chips_barbaras_012",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_013",
+                "Name": "chips_barbaras_013",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_014",
+                "Name": "chips_barbaras_014",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_015",
+                "Name": "chips_barbaras_015",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_016",
+                "Name": "chips_barbaras_016",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_017",
+                "Name": "chips_barbaras_017",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_018",
+                "Name": "chips_barbaras_018",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_019",
+                "Name": "chips_barbaras_019",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_020",
+                "Name": "chips_barbaras_020",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_021",
+                "Name": "chips_barbaras_021",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_022",
+                "Name": "chips_barbaras_022",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_023",
+                "Name": "chips_barbaras_023",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_024",
+                "Name": "chips_barbaras_024",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_025",
+                "Name": "chips_barbaras_025",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_026",
+                "Name": "chips_barbaras_026",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_027",
+                "Name": "chips_barbaras_027",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_028",
+                "Name": "chips_barbaras_028",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_029",
+                "Name": "chips_barbaras_029",
                 "Scale": 5.2
             }, {
                 "id": 0,
-                "Name": "chips_can_lays_030",
-                "Scale": 5.2
-            }, {
-                "id": 0,
-                "Name": "chips_can_lays_031",
-                "Scale": 5.2
-            }, {
-                "id": 0,
-                "Name": "chips_can_lays_032",
-                "Scale": 5.2
-            }, {
-                "id": 0,
-                "Name": "chips_can_lays_033",
-                "Scale": 5.2
-            }, {
-                "id": 0,
-                "Name": "chips_can_lays_034",
-                "Scale": 5.2
-            }, {
-                "id": 0,
-                "Name": "chips_can_lays_035",
-                "Scale": 5.2
-            }, {
-                "id": 0,
-                "Name": "chips_can_lays_036",
-                "Scale": 5.2
-            }, {
-                "id": 0,
-                "Name": "chips_can_lays_037",
-                "Scale": 5.2
-            }, {
-                "id": 0,
-                "Name": "chips_can_lays_038",
-                "Scale": 5.2
-            }, {
-                "id": 0,
-                "Name": "chips_can_lays_039",
-                "Scale": 5.2
-            }, {
-                "id": 0,
-                "Name": "chips_can_lays_040",
+                "Name": "chips_barbaras_030",
                 "Scale": 5.2
             }]
         }]
