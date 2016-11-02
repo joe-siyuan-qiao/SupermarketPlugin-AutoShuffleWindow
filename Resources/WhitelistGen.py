@@ -78,6 +78,14 @@ productgroups.append({
 	'Discard': False
 })
 
+productgroups.append({
+	'GroupName': 'chips_doritos',
+	'ShelfName': 'BP_ShelfMain_001',
+	'Repeat': 141,
+	'Scale': 5.2,
+	'Discard': False
+})
+
 
 
 # Your code end here

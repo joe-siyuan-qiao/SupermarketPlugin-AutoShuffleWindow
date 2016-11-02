@@ -20,7 +20,7 @@ DEFINE_LOG_CATEGORY(LogAutoShuffle);
 
 #define VERBOSE_AUTO_SHUFFLE
 #define AUTO_SHUFFLE_Y_TWO_END_OFFSET 50.f
-#define AUTO_SHUFFLE_MAX_TRY_TIMES 5
+#define AUTO_SHUFFLE_MAX_TRY_TIMES 50
 #define AUTO_SHUFFLE_INC_STEP 0.5f
 #define AUTO_SHUFFLE_INC_BOUND 1000
 #define AUTO_SHUFFLE_EXPANSION_BOUND 20
@@ -110,6 +110,7 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
     FText Density = FText::FromString(TEXT("Density      "));
     FText Proxmity = FText::FromString(TEXT("Proxmity   "));
 	FText Organize = FText::FromString(TEXT("Organize   "));
+	FText PerGroup = FText::FromString(TEXT("PerGroup   "));
     
     return SNew(SDockTab).TabRole(ETabRole::NomadTab)
     [
@@ -149,6 +150,14 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
 			[
 				OrganizeCheckBox
 			]
+			+ SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center).AutoWidth()
+			[
+				SNew(STextBlock).Text(PerGroup)
+			]
+			+ SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center).AutoWidth()
+			[
+				PerGroupCheckBox
+			]
 		]
         + SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
         [
@@ -176,16 +185,19 @@ void FAutoShuffleWindowModule::AddToolbarExtension(FToolBarBuilder& Builder)
 TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::DensitySpinBox = SNew(SSpinBox<float>);
 TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::ProxmitySpinBox = SNew(SSpinBox<float>);
 TSharedRef<SCheckBox> FAutoShuffleWindowModule::OrganizeCheckBox = SNew(SCheckBox);
+TSharedRef<SCheckBox> FAutoShuffleWindowModule::PerGroupCheckBox = SNew(SCheckBox);
 TArray<FAutoShuffleShelf>* FAutoShuffleWindowModule::ShelvesWhitelist = nullptr;
 TArray<FAutoShuffleProductGroup>* FAutoShuffleWindowModule::ProductsWhitelist = nullptr;
 FVector FAutoShuffleWindowModule::DiscardedProductsRegions;
 bool FAutoShuffleWindowModule::bIsOrganizeChecked;
+bool FAutoShuffleWindowModule::bIsPerGroupChecked;
 
 void FAutoShuffleWindowModule::AutoShuffleImplementation()
 {
     float Density = FAutoShuffleWindowModule::DensitySpinBox->GetValue();
     float Proxmity = FAutoShuffleWindowModule::ProxmitySpinBox->GetValue();
 	bIsOrganizeChecked = FAutoShuffleWindowModule::OrganizeCheckBox->IsChecked();
+	bIsPerGroupChecked = FAutoShuffleWindowModule::PerGroupCheckBox->IsChecked();
     bool Result = FAutoShuffleWindowModule::ReadWhitelist();
     if (!Result)
     {
@@ -219,7 +231,7 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
             }
         }
     }
-	if (bIsOrganizeChecked)
+	if (bIsOrganizeChecked && !bIsPerGroupChecked)
 	{
 		OrganizeProducts();
 	}
@@ -670,8 +682,8 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                         {
                             break;
                         }
-                        // else get another anchor point that follows the perceptual organization
-                        else
+                        // else if the product still in bound, get another anchor point that follows the perceptual organization
+                        else if (bIsInBound)
                         {
                             float ProductWidth = ProductExtent.Y * 2.f;
                             // place the product to the right
@@ -685,6 +697,14 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                                 Anchor.Y -= AlreadyTriedTimes * (ProductWidth + FMath::RandRange(float(AUTO_SHUFFLE_Y_TWO_END_OFFSET * 0.5f), AUTO_SHUFFLE_Y_TWO_END_OFFSET));
                             }
                         }
+						// else, randomly find another anchor point
+						else
+						{
+							ShelfBaseIdx = FMath::RandRange(0, ShelfBaseZ.Num() - 1);
+							Anchor.Z = ShelfBaseZ[ShelfBaseIdx];
+							Anchor.Y = FMath::RandRange(float(BoundingBoxOrigin.Y - BoundingBoxExtent.Y + AUTO_SHUFFLE_Y_TWO_END_OFFSET), float(BoundingBoxOrigin.Y + BoundingBoxExtent.Y - AUTO_SHUFFLE_Y_TWO_END_OFFSET));
+							Anchor.X = BoundingBoxOrigin.X - BoundingBoxExtent.X;
+						}
                     }
                     // if collision all the time, discard
                     if (AlreadyTriedTimes >= AUTO_SHUFFLE_MAX_TRY_TIMES)
@@ -719,6 +739,10 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                     }
                 }
             }
+			if (bIsOrganizeChecked && bIsPerGroupChecked)
+			{
+				OrganizeProducts();
+			}
         }
     }
 }
@@ -764,8 +788,16 @@ void FAutoShuffleWindowModule::OrganizeProducts()
                 }
             }
         }
-        // sort them according to bound.Y from low to high
-        Products.Sort(OrganizeProductsPredicate);
+        // sort them according to bound.Y from low to high for 001 shelf
+		if (ShelfIt->GetName() == "BP_ShelfMain_001")
+		{
+			Products.Sort(OrganizeProductsPredicateLowToHigh);
+		}
+		// from high to low for 002 shelf
+		else
+		{
+			Products.Sort(OrganizeProductsPredicateHighToLow);
+		}
 
         // iterate through all the sorted actors
         for (auto ProductIt = Products.CreateIterator(); ProductIt; ++ProductIt)
@@ -773,14 +805,30 @@ void FAutoShuffleWindowModule::OrganizeProducts()
             // loop
             while (true)
             {
-                // try to push them to left
+                // try to push them to left for 001 shelf
                 FVector Position = (*ProductIt)->GetActorLocation();
-                Position.Y -= AUTO_SHUFFLE_INC_STEP;
+				if (ShelfIt->GetName() == "BP_ShelfMain_001")
+				{
+					Position.Y -= AUTO_SHUFFLE_INC_STEP;
+				}
+				// to right for 002 shelf
+				else
+				{
+					Position.Y += AUTO_SHUFFLE_INC_STEP;
+				}
                 (*ProductIt)->SetActorLocation(Position);
                 // check if the object is still in the bound
                 FVector ProductOrigin, ProductExtent;
                 (*ProductIt)->GetActorBounds(false, ProductOrigin, ProductExtent);
-                bool IsInBound = ProductOrigin.Y - ProductExtent.Y >= ShelfOrigin.Y - ShelfExtent.Y;
+				bool IsInBound;
+				if (ShelfIt->GetName() == "BP_ShelfMain_001")
+				{
+					IsInBound = ProductOrigin.Y - ProductExtent.Y >= ShelfOrigin.Y - ShelfExtent.Y;
+				}
+				else
+				{
+					IsInBound = ProductOrigin.Y + ProductExtent.Y <= ShelfOrigin.Y + ShelfExtent.Y;
+				}
                 // check if there's no collision
                 TArray<AActor*> OverlappingActors;
                 (*ProductIt)->GetOverlappingActors(OverlappingActors);
@@ -788,7 +836,14 @@ void FAutoShuffleWindowModule::OrganizeProducts()
                 // if not in the bound or has collision, restore and proceed to the next product
                 if (!IsInBound || !HasNoCollision)
                 {
-                    Position.Y += AUTO_SHUFFLE_INC_STEP;
+					if (ShelfIt->GetName() == "BP_ShelfMain_001")
+					{
+						Position.Y += AUTO_SHUFFLE_INC_STEP;
+					}
+					else
+					{
+						Position.Y -= AUTO_SHUFFLE_INC_STEP;
+					}
                     (*ProductIt)->SetActorLocation(Position);
                     break;
                 }
@@ -809,12 +864,20 @@ void FAutoShuffleWindowModule::OrganizeProducts()
     }
 }
 
-bool FAutoShuffleWindowModule::OrganizeProductsPredicate(const AActor &Actor1, const AActor &Actor2)
+bool FAutoShuffleWindowModule::OrganizeProductsPredicateLowToHigh(const AActor &Actor1, const AActor &Actor2)
 {
     FVector Actor1Origin, Actor1Extent, Actor2Origin, Actor2Extent;
     Actor1.GetActorBounds(false, Actor1Origin, Actor1Extent);
     Actor2.GetActorBounds(false, Actor2Origin, Actor2Extent);
     return Actor1Origin.Y - Actor1Extent.Y < Actor2Origin.Y - Actor2Extent.Y;
+}
+
+bool FAutoShuffleWindowModule::OrganizeProductsPredicateHighToLow(const AActor &Actor1, const AActor &Actor2)
+{
+	FVector Actor1Origin, Actor1Extent, Actor2Origin, Actor2Extent;
+	Actor1.GetActorBounds(false, Actor1Origin, Actor1Extent);
+	Actor2.GetActorBounds(false, Actor2Origin, Actor2Extent);
+	return Actor1Origin.Y - Actor1Extent.Y > Actor2Origin.Y - Actor2Extent.Y;
 }
 
 FAutoShuffleObject::FAutoShuffleObject()

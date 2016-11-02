@@ -48,6 +48,12 @@ private:
 
 	/** The status of the organize checkbox when button clicked */
 	static bool bIsOrganizeChecked;
+
+	/** Check box for per group organizing */
+	static TSharedRef<SCheckBox> PerGroupCheckBox;
+
+	/** The status of the pergroup checkbox when button clicked */
+	static bool bIsPerGroupChecked;
     
     /** The regions for the discarded products */
     static FVector DiscardedProductsRegions;
@@ -73,8 +79,11 @@ private:
     /** Organize the objects that are already on the shelves -- push all of them to left of the shelf until collided. Should respond to a checkbox on the plugin window */
     static void OrganizeProducts();
     
-    /** Predicate used for sorting AActors in OrganizeProducts */
-    static bool OrganizeProductsPredicate(const AActor &Actor1, const AActor &Actor2);
+    /** Predicate used for sorting AActors in OrganizeProducts from low to high */
+    static bool OrganizeProductsPredicateLowToHigh(const AActor &Actor1, const AActor &Actor2);
+
+	/** Predicate used for sorting AActors in OrganizeProducts from high to low */
+	static bool OrganizeProductsPredicateHighToLow(const AActor &Actor1, const AActor &Actor2);
 
 public:
     /** Static method for parsing the Whitelist written in Json */
