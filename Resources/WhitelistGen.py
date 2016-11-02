@@ -34,21 +34,48 @@ productgroups.append({
 	'GroupName': 'chips_barbaras',
 	'ShelfName': 'BP_ShelfMain_001',
 	'Repeat': 30,
-	'Scale': 5.2
+	'Scale': 5.2,
+	'Discard': False
 })
 
 productgroups.append({
 	'GroupName': 'chips_box_lays',
 	'ShelfName': 'BP_ShelfMain_001',
 	'Repeat': 30,
-	'Scale': 5.2
+	'Scale': 5.2,
+	'Discard': True
 })
 
 productgroups.append({
 	'GroupName': 'chips_box_olddutch',
 	'ShelfName': 'BP_ShelfMain_001',
 	'Repeat': 42,
-	'Scale': 5.2
+	'Scale': 5.2,
+	'Discard': False
+})
+
+productgroups.append({
+	'GroupName': 'chips_can_lays',
+	'ShelfName': 'BP_ShelfMain_001',
+	'Repeat': 40,
+	'Scale': 5.2,
+	'Discard': False
+})
+
+productgroups.append({
+	'GroupName': 'chips_cretos',
+	'ShelfName': 'BP_ShelfMain_001',
+	'Repeat': 30,
+	'Scale': 5.2,
+	'Discard': False
+})
+
+productgroups.append({
+	'GroupName': 'chips_cyclone',
+	'ShelfName': 'BP_ShelfMain_001',
+	'Repeat': 66,
+	'Scale': 5.2,
+	'Discard': False
 })
 
 

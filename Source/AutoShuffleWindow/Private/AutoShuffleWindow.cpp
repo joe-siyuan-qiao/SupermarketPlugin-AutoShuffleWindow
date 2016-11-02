@@ -337,6 +337,7 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
         TSharedPtr<FJsonObject> ProductObjectJson = (*JsonValueIt)->AsObject();
         FString NewGroupName = ProductObjectJson->GetStringField("GroupName");
         FString NewShelfName = ProductObjectJson->GetStringField("ShelfName");
+		bool bProductsDiscarded = ProductObjectJson->GetBoolField("Discard");
         TArray<FAutoShuffleObject>* NewMembers = new TArray<FAutoShuffleObject>();
         TArray<TSharedPtr<FJsonValue>> Members = ProductObjectJson->GetArrayField("Members");
         for (auto MemberValueIt = Members.CreateIterator(); MemberValueIt; ++MemberValueIt)
@@ -367,11 +368,19 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
             NewMembers->Top().SetName(NewName);
             NewMembers->Top().SetObjectActor(NewObjectActor);
             NewMembers->Top().SetScale(NewScale);
+			if (bProductsDiscarded)
+			{
+				NewMembers->Top().SetPosition(DiscardedProductsRegions);
+			}
         }
         ProductsWhitelist->Add(FAutoShuffleProductGroup());
         ProductsWhitelist->Top().SetName(NewGroupName);
         ProductsWhitelist->Top().SetMembers(NewMembers);
         ProductsWhitelist->Top().SetShelfName(NewShelfName);
+		if (bProductsDiscarded)
+		{
+			ProductsWhitelist->Top().Discard();
+		}
     }
     
 #ifdef VERBOSE_AUTO_SHUFFLE
@@ -502,6 +511,11 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
             {
                 continue;
             }
+			// check if the whole group of products have been discarded in whitelist
+			if (ProductGroupIt->IsDiscarded())
+			{
+				continue;
+			}
             // get a centerilized anchor for placing products
             int ShelfBaseIdx = FMath::RandRange(0, ShelfBaseZ.Num() - 1);
             FVector Anchor;
@@ -1040,6 +1054,7 @@ FAutoShuffleProductGroup::FAutoShuffleProductGroup()
     Members = nullptr;
     Name = TEXT("Uninitialized Object Name");
     ShelfName = TEXT("Unintialized Object Name");
+	bIsDiscarded = false;
 }
 
 FAutoShuffleProductGroup::~FAutoShuffleProductGroup()
@@ -1082,6 +1097,21 @@ void FAutoShuffleProductGroup::SetShelfName(FString& NewShelfName)
 FString FAutoShuffleProductGroup::GetShelfName() const
 {
     return ShelfName;
+}
+
+void FAutoShuffleProductGroup::Discard()
+{
+	bIsDiscarded = true;
+}
+
+void FAutoShuffleProductGroup::ResetDiscard()
+{
+	bIsDiscarded = false;
+}
+
+bool FAutoShuffleProductGroup::IsDiscarded()
+{
+	return bIsDiscarded;
 }
 
 #undef LOCTEXT_NAMESPACE

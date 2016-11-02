@@ -227,6 +227,15 @@ public:
     
     /** Get the shelf name */
     FString GetShelfName() const;
+
+	/** Discard the whole groups. Defined in the whitelist */
+	void Discard();
+
+	/** Reset the bIsDiscarded variable */
+	void ResetDiscard();
+
+	/** Return if the whole group is discarded */
+	bool IsDiscarded();
     
 private:
     /** The members of the product. Proxmity is used for deciding placing members */
@@ -237,6 +246,10 @@ private:
     
     /** The name of the shelf that this group belongs to */
     FString ShelfName;
+
+	/** Whether the whole group is discarded by whitelist */
+	/** This is extremely important */
+	bool bIsDiscarded;
 };
 
 
