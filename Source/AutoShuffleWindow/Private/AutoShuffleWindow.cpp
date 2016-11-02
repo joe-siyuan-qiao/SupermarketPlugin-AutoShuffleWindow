@@ -89,6 +89,9 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
     ProxmitySpinBox->SetMaxSliderValue(1.f);
     ProxmitySpinBox->SetValue(0.5f);
     
+	// init or re-init the checkboxes
+	OrganizeCheckBox = SNew(SCheckBox);
+
     // set the region of the discarded products to origin
     DiscardedProductsRegions = FVector(0.f, 0.f, 0.f);
     
@@ -106,6 +109,7 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
     Button->SetOnClicked(FOnClicked::CreateLambda(OnButtonClickedLambda));
     FText Density = FText::FromString(TEXT("Density      "));
     FText Proxmity = FText::FromString(TEXT("Proxmity   "));
+	FText Organize = FText::FromString(TEXT("Organize   "));
     
     return SNew(SDockTab).TabRole(ETabRole::NomadTab)
     [
@@ -134,6 +138,18 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
                 ProxmitySpinBox
             ]
         ]
+		+ SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center).AutoWidth()
+			[
+				SNew(STextBlock).Text(Organize)
+			]
+			+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
+			[
+				OrganizeCheckBox
+			]
+		]
         + SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
         [
             Button
@@ -159,14 +175,17 @@ void FAutoShuffleWindowModule::AddToolbarExtension(FToolBarBuilder& Builder)
 /** The folloinwg are the implemetations of the auto shuffle */
 TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::DensitySpinBox = SNew(SSpinBox<float>);
 TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::ProxmitySpinBox = SNew(SSpinBox<float>);
+TSharedRef<SCheckBox> FAutoShuffleWindowModule::OrganizeCheckBox = SNew(SCheckBox);
 TArray<FAutoShuffleShelf>* FAutoShuffleWindowModule::ShelvesWhitelist = nullptr;
 TArray<FAutoShuffleProductGroup>* FAutoShuffleWindowModule::ProductsWhitelist = nullptr;
 FVector FAutoShuffleWindowModule::DiscardedProductsRegions;
+bool FAutoShuffleWindowModule::bIsOrganizeChecked;
 
 void FAutoShuffleWindowModule::AutoShuffleImplementation()
 {
     float Density = FAutoShuffleWindowModule::DensitySpinBox->GetValue();
     float Proxmity = FAutoShuffleWindowModule::ProxmitySpinBox->GetValue();
+	bIsOrganizeChecked = FAutoShuffleWindowModule::OrganizeCheckBox->IsChecked();
     bool Result = FAutoShuffleWindowModule::ReadWhitelist();
     if (!Result)
     {
@@ -200,7 +219,10 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
             }
         }
     }
-    OrganizeProducts();
+	if (bIsOrganizeChecked)
+	{
+		OrganizeProducts();
+	}
     LowerProducts();
 }
 

@@ -42,6 +42,12 @@ private:
     
     /** SpinBox for Proxmity -- how similar products are placed */
     static TSharedRef<SSpinBox<float>> ProxmitySpinBox;
+
+	/** Check box for toggling product organizing */
+	static TSharedRef<SCheckBox> OrganizeCheckBox;
+
+	/** The status of the organize checkbox when button clicked */
+	static bool bIsOrganizeChecked;
     
     /** The regions for the discarded products */
     static FVector DiscardedProductsRegions;
