@@ -43,7 +43,7 @@ productgroups.append({
 	'ShelfName': 'BP_ShelfMain_001',
 	'Repeat': 30,
 	'Scale': 5.2,
-	'Discard': True
+	'Discard': False
 })
 
 productgroups.append({

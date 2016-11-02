@@ -661,8 +661,12 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                         ProductIt->SetShelfOffset(ShelfOffsetZ[ShelfBaseIdx]);
                         // see if the object could fit the anchor position
                         ProductIt->GetObjectActor()->GetOverlappingActors(OverlappingActors);
-                        // if yes: place the object and break
-                        if (/** no collision */ OverlappingActors.Num() == 0)
+						bool bHasCollision = OverlappingActors.Num() != 0;
+						// see if the product is in the bound of the shelf
+						ProductIt->GetObjectActor()->GetActorBounds(false, ProductOrigin, ProductExtent);
+						bool bIsInBound = ProductOrigin.Y - ProductExtent.Y >= BoundingBoxOrigin.Y - BoundingBoxExtent.Y
+							&& ProductOrigin.Y + ProductExtent.Y <= BoundingBoxOrigin.Y + BoundingBoxExtent.Y;
+                        if (/** no collision and inbound */ !bHasCollision && bIsInBound)
                         {
                             break;
                         }
