@@ -304,11 +304,11 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
         AActor* NewObjectActor = nullptr;
         for (TActorIterator<AActor> ActorIt(EditorWorld); ActorIt; ++ActorIt)
         {
-            if (ActorIt->GetName().Contains(NewName))
+            if (ActorIt->GetActorLabel() == NewName)
             {
                 NewObjectActor = *ActorIt;
 #ifdef VERBOSE_AUTO_SHUFFLE
-                UE_LOG(LogAutoShuffle, Log, TEXT("Found %s for %s"), *NewObjectActor->GetName(), *NewName);
+                UE_LOG(LogAutoShuffle, Log, TEXT("Found %s for %s"), *NewObjectActor->GetActorLabel(), *NewName);
 #endif
                 break;
             }
@@ -381,11 +381,11 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
             AActor* NewObjectActor = nullptr;
             for (TActorIterator<AActor> ActorIt(EditorWorld); ActorIt; ++ActorIt)
             {
-                if (ActorIt->GetName().Contains(NewName))
+                if (ActorIt->GetActorLabel() == NewName)
                 {
                     NewObjectActor = *ActorIt;
 #ifdef VERBOSE_AUTO_SHUFFLE
-                    UE_LOG(LogAutoShuffle, Log, TEXT("Found %s for %s"), *ActorIt->GetName(), *NewName);
+                    UE_LOG(LogAutoShuffle, Log, TEXT("Found %s for %s"), *ActorIt->GetActorLabel(), *NewName);
 #endif
                     break;
                 }
