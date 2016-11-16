@@ -32,6 +32,7 @@ public class AutoShuffleWindow : ModuleRules
                 "InputCore",
                 "RenderCore",
                 "ImageWrapper",
+                "RawMesh",
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -50,6 +51,7 @@ public class AutoShuffleWindow : ModuleRules
 				"SlateCore",
                 "Json",
                 "JsonUtilities",
+                "RawMesh",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

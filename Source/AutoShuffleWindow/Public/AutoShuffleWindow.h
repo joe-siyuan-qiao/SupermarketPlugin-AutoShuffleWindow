@@ -11,6 +11,10 @@ class FAutoShuffleShelf;
 class FAutoShuffleProductGroup;
 class F2DPoint;
 class F2DPointf;
+class FOcclusionPixel;
+
+#define OCCLUSION_VISIBILITY_RESOLUTION_WIDTH 1000
+#define OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT 400
 
 class FAutoShuffleWindowModule : public IModuleInterface
 {
@@ -41,6 +45,9 @@ private:
 
     /** The main entry of the occlusion visibility function */
     static void OcclusionVisibilityImplementation();
+
+    /** The rendering device for occlusion visibility */
+    static TArray<class FOcclusionPixel> RenderingDevice[OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT][OCCLUSION_VISIBILITY_RESOLUTION_WIDTH];
     
     /** SpinBox for Density -- the density of the productions */
     static TSharedRef<SSpinBox<float>> DensitySpinBox;
@@ -292,6 +299,15 @@ public:
     float X, Y, Z;
     F2DPointf(float NewX, float NewY, float NewZ);
 };
+
+class FOcclusionPixel
+{
+public:
+    int ActorIdx; float Depth;
+    FOcclusionPixel(int NewActorIdx, float NewDepth);
+    FOcclusionPixel();
+};
+
 
 
 

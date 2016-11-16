@@ -12,6 +12,7 @@
 
 /** The following header files are not from the template */
 #include "Json.h"
+#include "Developer/RawMesh/Public/RawMesh.h"
 
 static const FName AutoShuffleWindowTabName("AutoShuffleWindow");
 
@@ -24,8 +25,6 @@ DEFINE_LOG_CATEGORY(LogAutoShuffle);
 #define AUTO_SHUFFLE_INC_STEP 0.5f
 #define AUTO_SHUFFLE_INC_BOUND 1000
 #define AUTO_SHUFFLE_EXPANSION_BOUND 20
-#define OCCLUSION_VISIBILITY_RESOLUTION_WIDTH 1920
-#define OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT 1080
 
 void FAutoShuffleWindowModule::StartupModule()
 {
@@ -230,6 +229,9 @@ FVector FAutoShuffleWindowModule::DiscardedProductsRegions;
 bool FAutoShuffleWindowModule::bIsOrganizeChecked;
 bool FAutoShuffleWindowModule::bIsPerGroupChecked;
 
+// the rendering device: a very big two-dimensional tarray of index of actors, and depth
+TArray<class FOcclusionPixel> FAutoShuffleWindowModule::RenderingDevice[OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT][OCCLUSION_VISIBILITY_RESOLUTION_WIDTH];
+
 void FAutoShuffleWindowModule::AutoShuffleImplementation()
 {
     float Density = FAutoShuffleWindowModule::DensitySpinBox->GetValue();
@@ -303,7 +305,121 @@ void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
         RenderingBorderZRight = FMath::Max(RenderingBorderZRight, ShelfOrigin.Z + ShelfExtent.Z);
     }
     UE_LOG(LogAutoShuffle, Log, TEXT("Valid Boundary: %f, %f, %f, %f, %f, %f"), RenderingBorderXLeft, RenderingBorderXRight, RenderingBorderYLeft, RenderingBorderYRight, RenderingBorderZLeft, RenderingBorderZRight);
-    // the rendering device: a very big two-dimensional tarray of index of actors, and depth
+    // clean the occlusion visibility rendering device
+    for (int y = 0; y < OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT; ++y)
+    {
+        for (int x = 0; x < OCCLUSION_VISIBILITY_RESOLUTION_WIDTH; ++x)
+        {
+            RenderingDevice[y][x].Empty();
+        }
+    }
+    // gather all the valid static mesh actors
+    TArray<AStaticMeshActor*> ActorArray;
+    for (auto GroupIt = ProductsWhitelist->CreateIterator(); GroupIt; ++GroupIt)
+    {
+        for (auto ProductIt = GroupIt->GetMembers()->CreateIterator(); ProductIt; ++ProductIt)
+        {
+            // see if the product is within the border by testing the product center
+            FVector ProductOrigin, ProductExtent;
+            if (!ProductIt->GetObjectActor())
+            {
+                continue;
+            }
+            AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(ProductIt->GetObjectActor());
+            ProductIt->GetObjectActor()->GetActorBounds(false, ProductOrigin, ProductExtent);
+            if (ProductOrigin.X > RenderingBorderXRight || ProductOrigin.X < RenderingBorderXLeft ||
+                ProductOrigin.Y > RenderingBorderYRight || ProductOrigin.Y < RenderingBorderYLeft ||
+                /** ProductOrigin.Z > RenderingBorderZRight || */ ProductOrigin.Z < RenderingBorderZLeft)
+            {
+                continue;
+            }
+            if (StaticMeshActor)
+            {
+                ActorArray.Add(StaticMeshActor);
+            }
+        }
+    }
+    // Get all the meshes and draw them on the rendering device
+    // Reference: https://forums.unrealengine.com/showthread.php?8856-Accessing-Vertex-Positions-of-static-mesh
+    // Reference: https://answers.unrealengine.com/questions/465376/access-to-mesh-data-in-object-via-c.html
+    // @todo Parallelable
+    UE_LOG(LogAutoShuffle, Log, TEXT("Start rendering %d static meshes"), ActorArray.Num());
+    FDateTime DateTime;
+    UE_LOG(LogAutoShuffle, Log, TEXT("%d: %d starts"), DateTime.Now().GetMinute(), DateTime.Now().GetSecond());
+    for (int ActorIdx = 0; ActorIdx < ActorArray.Num(); ++ActorIdx)
+    {
+        if (!ActorArray[ActorIdx]->GetStaticMeshComponent())
+        {
+            continue;
+        }
+        if (!ActorArray[ActorIdx]->GetStaticMeshComponent()->StaticMesh)
+        {
+            continue;
+        }
+        if (ActorArray[ActorIdx]->GetStaticMeshComponent()->StaticMesh->SourceModels.Num() == 0)
+        {
+            continue;
+        }
+        FRawMesh RawMesh;
+        ActorArray[ActorIdx]->GetStaticMeshComponent()->StaticMesh->SourceModels[0].RawMeshBulkData->LoadRawMesh(RawMesh);
+        TArray<FVector> Vertices = RawMesh.VertexPositions;
+        TArray<uint32> Wedges = RawMesh.WedgeIndices;
+        // Assumption: this is a triangle mesh; otherwise, don't know how to do
+        for (int WedgeIdx = 0; 3 * WedgeIdx < Wedges.Num(); ++WedgeIdx)
+        {
+            FVector Vec1 = ActorArray[ActorIdx]->GetActorLocation() + ActorArray[ActorIdx]->GetTransform().TransformVector(Vertices[Wedges[3 * WedgeIdx + 0]]);
+            FVector Vec2 = ActorArray[ActorIdx]->GetActorLocation() + ActorArray[ActorIdx]->GetTransform().TransformVector(Vertices[Wedges[3 * WedgeIdx + 1]]);
+            FVector Vec3 = ActorArray[ActorIdx]->GetActorLocation() + ActorArray[ActorIdx]->GetTransform().TransformVector(Vertices[Wedges[3 * WedgeIdx + 2]]);
+            
+            F2DPointf Pointf1(
+                (Vec1.Y - RenderingBorderYLeft) / (RenderingBorderYRight - RenderingBorderYLeft) * OCCLUSION_VISIBILITY_RESOLUTION_WIDTH,
+                (Vec1.Z - RenderingBorderZLeft) / (RenderingBorderZRight - RenderingBorderZLeft) * OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT,
+                Vec1.X
+            ), Pointf2(
+                (Vec2.Y - RenderingBorderYLeft) / (RenderingBorderYRight - RenderingBorderYLeft) * OCCLUSION_VISIBILITY_RESOLUTION_WIDTH,
+                (Vec2.Z - RenderingBorderZLeft) / (RenderingBorderZRight - RenderingBorderZLeft) * OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT,
+                Vec2.X
+            ), Pointf3(
+                (Vec3.Y - RenderingBorderYLeft) / (RenderingBorderYRight - RenderingBorderYLeft) * OCCLUSION_VISIBILITY_RESOLUTION_WIDTH,
+                (Vec3.Z - RenderingBorderZLeft) / (RenderingBorderZRight - RenderingBorderZLeft) * OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT,
+                Vec3.X
+            );
+            UE_LOG(LogAutoShuffle, Log, TEXT("Pointf1: %f, %f, %f"), Pointf1.X, Pointf1.Y, Pointf1.Z);
+            UE_LOG(LogAutoShuffle, Log, TEXT("Pointf2: %f, %f, %f"), Pointf2.X, Pointf2.Y, Pointf2.Z);
+            UE_LOG(LogAutoShuffle, Log, TEXT("Pointf3: %f, %f, %f"), Pointf3.X, Pointf3.Y, Pointf3.Z);
+            TArray<F2DPoint> *RenderingPoints = TriangleRasterizer(Pointf1, Pointf2, Pointf3);
+            UE_LOG(LogAutoShuffle, Log, TEXT("Rendering Points: %d"), RenderingPoints->Num());
+            if (RenderingPoints->Num() == 0)
+            {
+                continue;
+            }
+            // Render them to the device
+            for (auto PointIt = RenderingPoints->CreateIterator(); PointIt; ++PointIt)
+            {
+                UE_LOG(LogAutoShuffle, Log, TEXT("Point: %f, %f, %f"), PointIt->X, PointIt->Y);
+                if (PointIt->X < 0 || PointIt->X >= OCCLUSION_VISIBILITY_RESOLUTION_WIDTH ||
+                    PointIt->Y < 0 || PointIt->Y >= OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT)
+                {
+                    continue;
+                }
+                RenderingDevice[PointIt->Y][PointIt->X].Add(FOcclusionPixel(ActorIdx, PointIt->Z));
+            }
+            delete RenderingPoints;
+            break;
+        }
+        break;
+    }
+    UE_LOG(LogAutoShuffle, Log, TEXT("%d: %d ends"), DateTime.Now().GetMinute(), DateTime.Now().GetSecond());
+    int PixelWrittenTotal = 0;
+    for (int y = 0; y < OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT; ++y)
+    {
+        for (int x = 0; x < OCCLUSION_VISIBILITY_RESOLUTION_WIDTH; ++x)
+        {
+            PixelWrittenTotal += RenderingDevice[y][x].Num();
+        }
+    }
+    UE_LOG(LogAutoShuffle, Log, TEXT("%d pixels written."), PixelWrittenTotal);
+
 }
 
 bool FAutoShuffleWindowModule::ReadWhitelist()
@@ -1350,6 +1466,18 @@ F2DPointf::F2DPointf(float NewX, float NewY, float NewZ)
     Y = NewY;
     X = NewX;
     Z = NewZ;
+}
+
+FOcclusionPixel::FOcclusionPixel(int NewActorIdx, float NewDepth)
+{
+    ActorIdx = NewActorIdx;
+    Depth = NewDepth;
+}
+
+FOcclusionPixel::FOcclusionPixel()
+{
+    ActorIdx = -1;
+    Depth = 1e10f;
 }
 
 #undef LOCTEXT_NAMESPACE
