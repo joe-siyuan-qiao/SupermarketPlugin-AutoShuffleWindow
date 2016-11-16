@@ -345,7 +345,7 @@ void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
     // @todo Parallelable
     UE_LOG(LogAutoShuffle, Log, TEXT("Start rendering %d static meshes"), ActorArray.Num());
     FDateTime DateTime;
-    UE_LOG(LogAutoShuffle, Log, TEXT("%d: %d starts"), DateTime.Now().GetMinute(), DateTime.Now().GetSecond());
+    UE_LOG(LogAutoShuffle, Log, TEXT("%d: %d: %d starts"), DateTime.Now().GetMinute(), DateTime.Now().GetSecond(), DateTime.Now().GetMillisecond());
     for (int ActorIdx = 0; ActorIdx < ActorArray.Num(); ++ActorIdx)
     {
         if (!ActorArray[ActorIdx]->GetStaticMeshComponent())
@@ -384,11 +384,7 @@ void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
                 (Vec3.Z - RenderingBorderZLeft) / (RenderingBorderZRight - RenderingBorderZLeft) * OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT,
                 Vec3.X
             );
-            UE_LOG(LogAutoShuffle, Log, TEXT("Pointf1: %f, %f, %f"), Pointf1.X, Pointf1.Y, Pointf1.Z);
-            UE_LOG(LogAutoShuffle, Log, TEXT("Pointf2: %f, %f, %f"), Pointf2.X, Pointf2.Y, Pointf2.Z);
-            UE_LOG(LogAutoShuffle, Log, TEXT("Pointf3: %f, %f, %f"), Pointf3.X, Pointf3.Y, Pointf3.Z);
             TArray<F2DPoint> *RenderingPoints = TriangleRasterizer(Pointf1, Pointf2, Pointf3);
-            UE_LOG(LogAutoShuffle, Log, TEXT("Rendering Points: %d"), RenderingPoints->Num());
             if (RenderingPoints->Num() == 0)
             {
                 continue;
@@ -396,7 +392,6 @@ void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
             // Render them to the device
             for (auto PointIt = RenderingPoints->CreateIterator(); PointIt; ++PointIt)
             {
-                UE_LOG(LogAutoShuffle, Log, TEXT("Point: %f, %f, %f"), PointIt->X, PointIt->Y);
                 if (PointIt->X < 0 || PointIt->X >= OCCLUSION_VISIBILITY_RESOLUTION_WIDTH ||
                     PointIt->Y < 0 || PointIt->Y >= OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT)
                 {
@@ -405,21 +400,9 @@ void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
                 RenderingDevice[PointIt->Y][PointIt->X].Add(FOcclusionPixel(ActorIdx, PointIt->Z));
             }
             delete RenderingPoints;
-            break;
-        }
-        break;
-    }
-    UE_LOG(LogAutoShuffle, Log, TEXT("%d: %d ends"), DateTime.Now().GetMinute(), DateTime.Now().GetSecond());
-    int PixelWrittenTotal = 0;
-    for (int y = 0; y < OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT; ++y)
-    {
-        for (int x = 0; x < OCCLUSION_VISIBILITY_RESOLUTION_WIDTH; ++x)
-        {
-            PixelWrittenTotal += RenderingDevice[y][x].Num();
         }
     }
-    UE_LOG(LogAutoShuffle, Log, TEXT("%d pixels written."), PixelWrittenTotal);
-
+    UE_LOG(LogAutoShuffle, Log, TEXT("%d: %d: %d ends"), DateTime.Now().GetMinute(), DateTime.Now().GetSecond(), DateTime.Now().GetMillisecond());
 }
 
 bool FAutoShuffleWindowModule::ReadWhitelist()
@@ -1082,14 +1065,14 @@ TArray<class F2DPoint>* FAutoShuffleWindowModule::TriangleRasterizer(const class
     int MinX = (int)FMath::Min3(X1, X2, X3), MaxX = (int)FMath::Max3(X1, X2, X3);
     int MinY = (int)FMath::Min3(Y1, Y2, Y3), MaxY = (int)FMath::Max3(Y1, Y2, Y3);
 
+    // The area of triangle by cross product a x b = a1b2 - a2b1
+    float TriangleArea = FMath::Abs(DX12 * DY31 - DY12 * DX31);
+
     // An empty triangle
-    if (MinX == MaxX || MinY == MaxY)
+    if (TriangleArea < 1e-20f)
     {
         return PointArray;
     }
-
-    // The area of triangle by cross product a x b = a1b2 - a2b1
-    float TriangleArea = FMath::Abs(DX12 * DY31 - DY12 * DX31);
 
     // Constant part of half-edge functions
     float C1 = DY12 * X1 - DX12 * Y1;
@@ -1101,12 +1084,12 @@ TArray<class F2DPoint>* FAutoShuffleWindowModule::TriangleRasterizer(const class
     float CY3 = C3 + DX31 * MinY - DY31 * MinX;
 
     // Scan through bounding rectangle
-    for (int y = MinY; y < MaxY; ++y)
+    for (int y = MinY; y <= MaxY; ++y)
     {
         // Start value for horizontal scan
         float CX1 = CY1, CX2 = CY2, CX3 = CY3;
 
-        for (int x = MinX; x < MaxX; ++x)
+        for (int x = MinX; x <= MaxX; ++x)
         {
             if (CX1 > 0 && CX2 > 0 && CX3 > 0)
             {
