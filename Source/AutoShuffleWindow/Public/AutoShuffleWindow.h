@@ -282,15 +282,15 @@ private:
 class F2DPoint
 {
 public:
-    int Y, X;
-    F2DPoint(int NewX, int NewY);
+    int X, Y; float Z;
+    F2DPoint(int NewX, int NewY, float NewZ);
 };
 
 class F2DPointf
 {
 public:
-    float Y, X;
-    F2DPointf(float NewX, float NewY);
+    float X, Y, Z;
+    F2DPointf(float NewX, float NewY, float NewZ);
 };
 
 

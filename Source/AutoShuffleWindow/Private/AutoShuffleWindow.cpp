@@ -24,6 +24,8 @@ DEFINE_LOG_CATEGORY(LogAutoShuffle);
 #define AUTO_SHUFFLE_INC_STEP 0.5f
 #define AUTO_SHUFFLE_INC_BOUND 1000
 #define AUTO_SHUFFLE_EXPANSION_BOUND 20
+#define OCCLUSION_VISIBILITY_RESOLUTION_WIDTH 1920
+#define OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT 1080
 
 void FAutoShuffleWindowModule::StartupModule()
 {
@@ -301,6 +303,7 @@ void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
         RenderingBorderZRight = FMath::Max(RenderingBorderZRight, ShelfOrigin.Z + ShelfExtent.Z);
     }
     UE_LOG(LogAutoShuffle, Log, TEXT("Valid Boundary: %f, %f, %f, %f, %f, %f"), RenderingBorderXLeft, RenderingBorderXRight, RenderingBorderYLeft, RenderingBorderYRight, RenderingBorderZLeft, RenderingBorderZRight);
+    // the rendering device: a very big two-dimensional tarray of index of actors, and depth
 }
 
 bool FAutoShuffleWindowModule::ReadWhitelist()
@@ -948,8 +951,9 @@ bool FAutoShuffleWindowModule::OrganizeProductsPredicateHighToLow(const AActor &
 TArray<class F2DPoint>* FAutoShuffleWindowModule::TriangleRasterizer(const class F2DPointf &V1, const class F2DPointf &V2, const class F2DPointf &V3)
 {
     // Reference: http://forum.devmaster.net/t/advanced-rasterization/6145
+    // Reference: http://answers.unity3d.com/questions/383804/calculate-uv-coordinates-of-3d-point-on-plane-of-m.html
     // The 3rd implementation
-    TArray<class F2DPoint> *PointArray;
+    TArray<class F2DPoint> *PointArray = new TArray<class F2DPoint>;
 
     float Y1 = V1.Y, Y2 = V2.Y, Y3 = V3.Y;
     float X1 = V1.X, X2 = V2.X, X3 = V3.X;
@@ -961,6 +965,15 @@ TArray<class F2DPoint>* FAutoShuffleWindowModule::TriangleRasterizer(const class
     // Bounding rectangle
     int MinX = (int)FMath::Min3(X1, X2, X3), MaxX = (int)FMath::Max3(X1, X2, X3);
     int MinY = (int)FMath::Min3(Y1, Y2, Y3), MaxY = (int)FMath::Max3(Y1, Y2, Y3);
+
+    // An empty triangle
+    if (MinX == MaxX || MinY == MaxY)
+    {
+        return PointArray;
+    }
+
+    // The area of triangle by cross product a x b = a1b2 - a2b1
+    float TriangleArea = FMath::Abs(DX12 * DY31 - DY12 * DX31);
 
     // Constant part of half-edge functions
     float C1 = DY12 * X1 - DX12 * Y1;
@@ -981,7 +994,15 @@ TArray<class F2DPoint>* FAutoShuffleWindowModule::TriangleRasterizer(const class
         {
             if (CX1 > 0 && CX2 > 0 && CX3 > 0)
             {
-                PointArray->Add(F2DPoint(x, y));
+                // calculate intepolated z
+                float DXP1 = x - V1.X, DXP2 = x - V2.X, DXP3 = x - V3.X;
+                float DYP1 = y - V1.Y, DYP2 = y - V2.Y, DYP3 = y - V3.Y;
+                // The area of slides by cross product a x b = a1b2 - a2b1
+                float A1 = FMath::Abs(DXP2 * DYP3 - DXP3 * DYP2) / TriangleArea;
+                float A2 = FMath::Abs(DXP1 * DYP3 - DXP3 * DYP1) / TriangleArea;
+                float A3 = FMath::Abs(DXP1 * DYP2 - DXP2 * DYP1) / TriangleArea;
+                float z = A1 * V1.Z + A2 * V2.Z + A3 * V3.Z;
+                PointArray->Add(F2DPoint(x, y, z));
             }
             CX1 -= DY12;
             CX2 -= DY23;
@@ -1317,16 +1338,18 @@ bool FAutoShuffleProductGroup::IsDiscarded()
     return bIsDiscarded;
 }
 
-F2DPoint::F2DPoint(int NewX, int NewY)
+F2DPoint::F2DPoint(int NewX, int NewY, float NewZ)
 {
     Y = NewY;
     X = NewX;
+    Z = NewZ;
 }
 
-F2DPointf::F2DPointf(float NewX, float NewY)
+F2DPointf::F2DPointf(float NewX, float NewY, float NewZ)
 {
     Y = NewY;
     X = NewX;
+    Z = NewZ;
 }
 
 #undef LOCTEXT_NAMESPACE
