@@ -88,6 +88,12 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
     ProxmitySpinBox->SetMinSliderValue(0.f);
     ProxmitySpinBox->SetMaxSliderValue(1.f);
     ProxmitySpinBox->SetValue(0.5f);
+	OcclusionSpinBox = SNew(SSpinBox<float>);
+	OcclusionSpinBox->SetMinValue(0.f);
+	OcclusionSpinBox->SetMaxValue(1.f);
+	OcclusionSpinBox->SetMinSliderValue(0.f);
+	OcclusionSpinBox->SetMaxSliderValue(1.f);
+	OcclusionSpinBox->SetValue(0.9f);
     
 	// init or re-init the checkboxes
 	OrganizeCheckBox = SNew(SCheckBox);
@@ -95,22 +101,35 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
     // set the region of the discarded products to origin
     DiscardedProductsRegions = FVector(0.f, 0.f, 0.f);
     
-    TSharedRef<SButton> Button = SNew(SButton);
-    Button->SetVAlign(VAlign_Center);
-    Button->SetHAlign(HAlign_Center);
-    Button->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Auto Shuffle"))));
+    TSharedRef<SButton> AutoShuffleButton = SNew(SButton);
+    AutoShuffleButton->SetVAlign(VAlign_Center);
+    AutoShuffleButton->SetHAlign(HAlign_Center);
+    AutoShuffleButton->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Auto Shuffle"))));
+
+	TSharedRef<SButton> OcclusionVisibilityButton = SNew(SButton);
+	OcclusionVisibilityButton->SetVAlign(VAlign_Center);
+	OcclusionVisibilityButton->SetHAlign(HAlign_Center);
+	OcclusionVisibilityButton->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Make Occluded Objects Invisible"))));
     
-    auto OnButtonClickedLambda = []() -> FReply
+    auto OnAutoShuffleButtonClickedLambda = []() -> FReply
     {
         AutoShuffleImplementation();
         return FReply::Handled();
     };
+
+	auto OnOcclusionVisibilityButtonClickedLambda = []() -> FReply
+	{
+		OcclusionVisibilityImplementation();
+		return FReply::Handled();
+	};
     
-    Button->SetOnClicked(FOnClicked::CreateLambda(OnButtonClickedLambda));
+    AutoShuffleButton->SetOnClicked(FOnClicked::CreateLambda(OnAutoShuffleButtonClickedLambda));
+	OcclusionVisibilityButton->SetOnClicked(FOnClicked::CreateLambda(OnOcclusionVisibilityButtonClickedLambda));
     FText Density = FText::FromString(TEXT("Density      "));
     FText Proxmity = FText::FromString(TEXT("Proxmity   "));
 	FText Organize = FText::FromString(TEXT("Organize   "));
 	FText PerGroup = FText::FromString(TEXT("PerGroup   "));
+	FText OcclusionThreshold = FText::FromString(TEXT("OccThres   "));
     
     return SNew(SDockTab).TabRole(ETabRole::NomadTab)
     [
@@ -161,8 +180,24 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
 		]
         + SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
         [
-            Button
+            AutoShuffleButton
         ]
+		+ SVerticalBox::Slot().Padding(30.f, 10.f).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center).AutoWidth()
+			[
+				SNew(STextBlock).Text(OcclusionThreshold)
+			]
+			+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
+			[
+				OcclusionSpinBox
+			]
+		]
+		+ SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
+		[
+			OcclusionVisibilityButton
+		]
     ];
 }
 
@@ -184,6 +219,7 @@ void FAutoShuffleWindowModule::AddToolbarExtension(FToolBarBuilder& Builder)
 /** The folloinwg are the implemetations of the auto shuffle */
 TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::DensitySpinBox = SNew(SSpinBox<float>);
 TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::ProxmitySpinBox = SNew(SSpinBox<float>);
+TSharedRef<SSpinBox<float>> FAutoShuffleWindowModule::OcclusionSpinBox = SNew(SSpinBox<float>);
 TSharedRef<SCheckBox> FAutoShuffleWindowModule::OrganizeCheckBox = SNew(SCheckBox);
 TSharedRef<SCheckBox> FAutoShuffleWindowModule::PerGroupCheckBox = SNew(SCheckBox);
 TArray<FAutoShuffleShelf>* FAutoShuffleWindowModule::ShelvesWhitelist = nullptr;
@@ -236,6 +272,11 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
 		OrganizeProducts();
 	}
     LowerProducts();
+}
+
+void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
+{
+	UE_LOG(LogAutoShuffle, Log, TEXT("Set Occlusion Visibility"));
 }
 
 bool FAutoShuffleWindowModule::ReadWhitelist()

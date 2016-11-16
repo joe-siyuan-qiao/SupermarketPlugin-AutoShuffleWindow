@@ -36,12 +36,19 @@ private:
 private:
     /** The main entry of the algorithm */
     static void AutoShuffleImplementation();
+
+	/** The main entry of the occlusion visibility function */
+	static void OcclusionVisibilityImplementation();
     
     /** SpinBox for Density -- the density of the productions */
     static TSharedRef<SSpinBox<float>> DensitySpinBox;
     
     /** SpinBox for Proxmity -- how similar products are placed */
     static TSharedRef<SSpinBox<float>> ProxmitySpinBox;
+
+	/** SpinBox for controlling the threshold of the occlusion percentage
+	 *  to be consdered as invisible */
+	static TSharedRef<SSpinBox<float>> OcclusionSpinBox;
 
 	/** Check box for toggling product organizing */
 	static TSharedRef<SCheckBox> OrganizeCheckBox;
