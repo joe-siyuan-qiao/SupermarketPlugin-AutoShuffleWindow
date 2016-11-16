@@ -109,7 +109,7 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
     TSharedRef<SButton> OcclusionVisibilityButton = SNew(SButton);
     OcclusionVisibilityButton->SetVAlign(VAlign_Center);
     OcclusionVisibilityButton->SetHAlign(HAlign_Center);
-    OcclusionVisibilityButton->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Make Occluded Objects Invisible"))));
+    OcclusionVisibilityButton->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Generate Occlusion Description File"))));
     
     auto OnAutoShuffleButtonClickedLambda = []() -> FReply
     {
@@ -277,6 +277,30 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
 void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
 {
     UE_LOG(LogAutoShuffle, Log, TEXT("Set Occlusion Visibility"));
+    float OcclusionThreshold = FAutoShuffleWindowModule::OcclusionSpinBox->GetValue();
+    bool Result = FAutoShuffleWindowModule::ReadWhitelist();
+    if (!Result)
+    {
+        UE_LOG(LogAutoShuffle, Warning, TEXT("Whitelist read wrong. Module quits."));
+        return;
+    }
+    // find the boundary of the shelves
+    // pre-assumptions: looking from small x to big x, and within 1e10 scale
+    float RenderingBorderXLeft = 1e10f, RenderingBorderXRight = -1e10f,
+        RenderingBorderYLeft = 1e10f, RenderingBorderYRight = -1e10f,
+        RenderingBorderZLeft = 1e10f, RenderingBorderZRight = -1e10f;
+    for (auto ShelfIt = ShelvesWhitelist->CreateIterator(); ShelfIt; ++ShelfIt)
+    {
+        FVector ShelfOrigin, ShelfExtent;
+        ShelfIt->GetObjectActor()->GetActorBounds(false, ShelfOrigin, ShelfExtent);
+        RenderingBorderXLeft = FMath::Min(RenderingBorderXLeft, ShelfOrigin.X - ShelfExtent.X);
+        RenderingBorderXRight = FMath::Max(RenderingBorderXRight, ShelfOrigin.X + ShelfExtent.X);
+        RenderingBorderYLeft = FMath::Min(RenderingBorderYLeft, ShelfOrigin.Y - ShelfExtent.Y);
+        RenderingBorderYRight = FMath::Max(RenderingBorderYRight, ShelfOrigin.Y + ShelfExtent.Y);
+        RenderingBorderZLeft = FMath::Min(RenderingBorderZLeft, ShelfOrigin.Z - ShelfExtent.Z);
+        RenderingBorderZRight = FMath::Max(RenderingBorderZRight, ShelfOrigin.Z + ShelfExtent.Z);
+    }
+    UE_LOG(LogAutoShuffle, Log, TEXT("Valid Boundary: %f, %f, %f, %f, %f, %f"), RenderingBorderXLeft, RenderingBorderXRight, RenderingBorderYLeft, RenderingBorderYRight, RenderingBorderZLeft, RenderingBorderZRight);
 }
 
 bool FAutoShuffleWindowModule::ReadWhitelist()
@@ -921,6 +945,55 @@ bool FAutoShuffleWindowModule::OrganizeProductsPredicateHighToLow(const AActor &
     return Actor1Origin.Y - Actor1Extent.Y > Actor2Origin.Y - Actor2Extent.Y;
 }
 
+TArray<class F2DPoint>* FAutoShuffleWindowModule::TriangleRasterizer(const class F2DPointf &V1, const class F2DPointf &V2, const class F2DPointf &V3)
+{
+    // Reference: http://forum.devmaster.net/t/advanced-rasterization/6145
+    // The 3rd implementation
+    TArray<class F2DPoint> *PointArray;
+
+    float Y1 = V1.Y, Y2 = V2.Y, Y3 = V3.Y;
+    float X1 = V1.X, X2 = V2.X, X3 = V3.X;
+    
+    // Deltas
+    float DX12 = X1 - X2, DX23 = X2 - X3, DX31 = X3 - X1;
+    float DY12 = Y1 - Y2, DY23 = Y2 - Y3, DY31 = Y3 - Y1;
+
+    // Bounding rectangle
+    int MinX = (int)FMath::Min3(X1, X2, X3), MaxX = (int)FMath::Max3(X1, X2, X3);
+    int MinY = (int)FMath::Min3(Y1, Y2, Y3), MaxY = (int)FMath::Max3(Y1, Y2, Y3);
+
+    // Constant part of half-edge functions
+    float C1 = DY12 * X1 - DX12 * Y1;
+    float C2 = DY23 * X2 - DX23 * Y2;
+    float C3 = DY31 * X3 - DX31 * Y3;
+
+    float CY1 = C1 + DX12 * MinY - DY12 * MinX;
+    float CY2 = C2 + DX23 * MinY - DY23 * MinX;
+    float CY3 = C3 + DX31 * MinY - DY31 * MinX;
+
+    // Scan through bounding rectangle
+    for (int y = MinY; y < MaxY; ++y)
+    {
+        // Start value for horizontal scan
+        float CX1 = CY1, CX2 = CY2, CX3 = CY3;
+
+        for (int x = MinX; x < MaxX; ++x)
+        {
+            if (CX1 > 0 && CX2 > 0 && CX3 > 0)
+            {
+                PointArray->Add(F2DPoint(x, y));
+            }
+            CX1 -= DY12;
+            CX2 -= DY23;
+            CX3 -= DY31;
+        }
+        CY1 += DX12;
+        CY2 += DX23;
+        CY3 += DX31;
+    }
+    return PointArray;
+}
+
 FAutoShuffleObject::FAutoShuffleObject()
 {
     Scale = 1.f;
@@ -1242,6 +1315,18 @@ void FAutoShuffleProductGroup::ResetDiscard()
 bool FAutoShuffleProductGroup::IsDiscarded()
 {
     return bIsDiscarded;
+}
+
+F2DPoint::F2DPoint(int NewX, int NewY)
+{
+    Y = NewY;
+    X = NewX;
+}
+
+F2DPointf::F2DPointf(float NewX, float NewY)
+{
+    Y = NewY;
+    X = NewX;
 }
 
 #undef LOCTEXT_NAMESPACE

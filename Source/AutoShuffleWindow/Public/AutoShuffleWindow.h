@@ -9,6 +9,8 @@ class FMenuBuilder;
 class FAutoShuffleObject;
 class FAutoShuffleShelf;
 class FAutoShuffleProductGroup;
+class F2DPoint;
+class F2DPointf;
 
 class FAutoShuffleWindowModule : public IModuleInterface
 {
@@ -91,6 +93,9 @@ private:
 
     /** Predicate used for sorting AActors in OrganizeProducts from high to low */
     static bool OrganizeProductsPredicateHighToLow(const AActor &Actor1, const AActor &Actor2);
+
+    /** The rasterization for counter-clockwise triangle, used in computing occlusion */
+    static TArray<class F2DPoint>* TriangleRasterizer(const class F2DPointf &V1, const class F2DPointf &V2, const class F2DPointf &V3);
 
 public:
     /** Static method for parsing the Whitelist written in Json */
@@ -272,6 +277,20 @@ private:
     /** Whether the whole group is discarded by whitelist */
     /** This is extremely important */
     bool bIsDiscarded;
+};
+
+class F2DPoint
+{
+public:
+    int Y, X;
+    F2DPoint(int NewX, int NewY);
+};
+
+class F2DPointf
+{
+public:
+    float Y, X;
+    F2DPointf(float NewX, float NewY);
 };
 
 
