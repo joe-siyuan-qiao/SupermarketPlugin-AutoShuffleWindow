@@ -12,7 +12,7 @@ shelves = []
 shelves.append({
 	'Name': 'BP_ShelfMain',
 	'Repeat': 2,
-	'Scale': 5.2,
+	'Scale': 1.0,
 	'Shelfbase': [
 		0.09464480874316935,
 		0.31502732240437166,
@@ -34,7 +34,7 @@ productgroups.append({
 	'GroupName': 'chips_barbaras',
 	'ShelfName': 'BP_ShelfMain_001',
 	'Repeat': 30,
-	'Scale': 5.2,
+	'Scale': 1.0,
 	'Discard': False
 })
 
@@ -42,7 +42,7 @@ productgroups.append({
 	'GroupName': 'chips_box_lays',
 	'ShelfName': 'BP_ShelfMain_001',
 	'Repeat': 30,
-	'Scale': 5.2,
+	'Scale': 1.0,
 	'Discard': False
 })
 
@@ -50,7 +50,7 @@ productgroups.append({
 	'GroupName': 'chips_box_olddutch',
 	'ShelfName': 'BP_ShelfMain_001',
 	'Repeat': 42,
-	'Scale': 5.2,
+	'Scale': 1.0,
 	'Discard': False
 })
 
@@ -58,7 +58,7 @@ productgroups.append({
 	'GroupName': 'chips_can_lays',
 	'ShelfName': 'BP_ShelfMain_001',
 	'Repeat': 40,
-	'Scale': 5.2,
+	'Scale': 1.0,
 	'Discard': False
 })
 
@@ -66,7 +66,7 @@ productgroups.append({
 	'GroupName': 'chips_cretos',
 	'ShelfName': 'BP_ShelfMain_001',
 	'Repeat': 30,
-	'Scale': 5.2,
+	'Scale': 1.0,
 	'Discard': False
 })
 
@@ -74,7 +74,7 @@ productgroups.append({
 	'GroupName': 'chips_cyclone',
 	'ShelfName': 'BP_ShelfMain_001',
 	'Repeat': 66,
-	'Scale': 5.2,
+	'Scale': 1.0,
 	'Discard': False
 })
 
@@ -82,10 +82,65 @@ productgroups.append({
 	'GroupName': 'chips_doritos',
 	'ShelfName': 'BP_ShelfMain_001',
 	'Repeat': 141,
-	'Scale': 5.2,
+	'Scale': 1.0,
 	'Discard': False
 })
 
+productgroups.append({
+	'GroupName': 'chips_kettle',
+	'ShelfName': 'BP_ShelfMain_002',
+	'Repeat': 176,
+	'Scale': 1.0,
+	'Discard': False
+})
+
+productgroups.append({
+	'GroupName': 'chips_lays',
+	'ShelfName': 'BP_ShelfMain_002',
+	'Repeat': 234,
+	'Scale': 1.0,
+	'Discard': False
+})
+
+productgroups.append({
+	'GroupName': 'chips_sun',
+	'ShelfName': 'BP_ShelfMain_002',
+	'Repeat': 234,
+	'Scale': 1.0,
+	'Discard': False
+})
+
+productgroups.append({
+	'GroupName': 'chips_raffles',
+	'ShelfName': 'BP_ShelfMain_002',
+	'Repeat': 234,
+	'Scale': 1.0,
+	'Discard': False
+})
+
+productgroups.append({
+	'GroupName': 'chips_pringles_small',
+	'ShelfName': 'BP_ShelfMain_002',
+	'Repeat': 500,
+	'Scale': 1.0,
+	'Discard': True
+})
+
+productgroups.append({
+	'GroupName': 'chips_pringles',
+	'ShelfName': 'BP_ShelfMain_002',
+	'Repeat': 500,
+	'Scale': 1.0,
+	'Discard': False
+})
+
+productgroups.append({
+	'GroupName': 'chips_olddutch',
+	'ShelfName': 'BP_ShelfMain_002',
+	'Repeat': 1000,
+	'Scale': 1.0,
+	'Discard': False
+})
 
 
 # Your code end here

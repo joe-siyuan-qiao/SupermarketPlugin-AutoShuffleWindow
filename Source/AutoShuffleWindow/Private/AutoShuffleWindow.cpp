@@ -215,7 +215,7 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
             ProductIt->ShrinkScale();
         }
     }
-    AddNoiseToShelf("BP_ShelfMain_002", 50);
+    // AddNoiseToShelf("BP_ShelfMain_002", 50);
     PlaceProducts(Density, Proxmity);
     // Expand all the Products
     for (int ExpendIdx = 0; ExpendIdx < AUTO_SHUFFLE_EXPANSION_BOUND; ++ExpendIdx)
