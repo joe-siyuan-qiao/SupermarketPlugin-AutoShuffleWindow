@@ -27,50 +27,50 @@ DEFINE_LOG_CATEGORY(LogAutoShuffle);
 
 void FAutoShuffleWindowModule::StartupModule()
 {
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-	
-	FAutoShuffleWindowStyle::Initialize();
-	FAutoShuffleWindowStyle::ReloadTextures();
+    // This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+    
+    FAutoShuffleWindowStyle::Initialize();
+    FAutoShuffleWindowStyle::ReloadTextures();
 
-	FAutoShuffleWindowCommands::Register();
-	
-	PluginCommands = MakeShareable(new FUICommandList);
+    FAutoShuffleWindowCommands::Register();
+    
+    PluginCommands = MakeShareable(new FUICommandList);
 
-	PluginCommands->MapAction(
-		FAutoShuffleWindowCommands::Get().OpenPluginWindow,
-		FExecuteAction::CreateRaw(this, &FAutoShuffleWindowModule::PluginButtonClicked),
-		FCanExecuteAction());
-		
-	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-	
-	{
-		TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender());
-		MenuExtender->AddMenuExtension("WindowLayout", EExtensionHook::After, PluginCommands, FMenuExtensionDelegate::CreateRaw(this, &FAutoShuffleWindowModule::AddMenuExtension));
+    PluginCommands->MapAction(
+        FAutoShuffleWindowCommands::Get().OpenPluginWindow,
+        FExecuteAction::CreateRaw(this, &FAutoShuffleWindowModule::PluginButtonClicked),
+        FCanExecuteAction());
+        
+    FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+    
+    {
+        TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender());
+        MenuExtender->AddMenuExtension("WindowLayout", EExtensionHook::After, PluginCommands, FMenuExtensionDelegate::CreateRaw(this, &FAutoShuffleWindowModule::AddMenuExtension));
 
-		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MenuExtender);
-	}
-	
-	{
-		TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
-		ToolbarExtender->AddToolBarExtension("Settings", EExtensionHook::After, PluginCommands, FToolBarExtensionDelegate::CreateRaw(this, &FAutoShuffleWindowModule::AddToolbarExtension));
-		
-		LevelEditorModule.GetToolBarExtensibilityManager()->AddExtender(ToolbarExtender);
-	}
-	
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(AutoShuffleWindowTabName, FOnSpawnTab::CreateRaw(this, &FAutoShuffleWindowModule::OnSpawnPluginTab))
-		.SetDisplayName(LOCTEXT("FAutoShuffleWindowTabTitle", "AutoShuffleWindow"))
-		.SetMenuType(ETabSpawnerMenuType::Hidden);
+        LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MenuExtender);
+    }
+    
+    {
+        TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
+        ToolbarExtender->AddToolBarExtension("Settings", EExtensionHook::After, PluginCommands, FToolBarExtensionDelegate::CreateRaw(this, &FAutoShuffleWindowModule::AddToolbarExtension));
+        
+        LevelEditorModule.GetToolBarExtensibilityManager()->AddExtender(ToolbarExtender);
+    }
+    
+    FGlobalTabmanager::Get()->RegisterNomadTabSpawner(AutoShuffleWindowTabName, FOnSpawnTab::CreateRaw(this, &FAutoShuffleWindowModule::OnSpawnPluginTab))
+        .SetDisplayName(LOCTEXT("FAutoShuffleWindowTabTitle", "AutoShuffleWindow"))
+        .SetMenuType(ETabSpawnerMenuType::Hidden);
 }
 
 void FAutoShuffleWindowModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
-	FAutoShuffleWindowStyle::Shutdown();
+    // This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
+    // we call this function before unloading the module.
+    FAutoShuffleWindowStyle::Shutdown();
 
-	FAutoShuffleWindowCommands::Unregister();
+    FAutoShuffleWindowCommands::Unregister();
 
-	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(AutoShuffleWindowTabName);
+    FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(AutoShuffleWindowTabName);
 }
 
 TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
@@ -88,15 +88,15 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
     ProxmitySpinBox->SetMinSliderValue(0.f);
     ProxmitySpinBox->SetMaxSliderValue(1.f);
     ProxmitySpinBox->SetValue(0.5f);
-	OcclusionSpinBox = SNew(SSpinBox<float>);
-	OcclusionSpinBox->SetMinValue(0.f);
-	OcclusionSpinBox->SetMaxValue(1.f);
-	OcclusionSpinBox->SetMinSliderValue(0.f);
-	OcclusionSpinBox->SetMaxSliderValue(1.f);
-	OcclusionSpinBox->SetValue(0.9f);
+    OcclusionSpinBox = SNew(SSpinBox<float>);
+    OcclusionSpinBox->SetMinValue(0.f);
+    OcclusionSpinBox->SetMaxValue(1.f);
+    OcclusionSpinBox->SetMinSliderValue(0.f);
+    OcclusionSpinBox->SetMaxSliderValue(1.f);
+    OcclusionSpinBox->SetValue(0.9f);
     
-	// init or re-init the checkboxes
-	OrganizeCheckBox = SNew(SCheckBox);
+    // init or re-init the checkboxes
+    OrganizeCheckBox = SNew(SCheckBox);
 
     // set the region of the discarded products to origin
     DiscardedProductsRegions = FVector(0.f, 0.f, 0.f);
@@ -106,10 +106,10 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
     AutoShuffleButton->SetHAlign(HAlign_Center);
     AutoShuffleButton->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Auto Shuffle"))));
 
-	TSharedRef<SButton> OcclusionVisibilityButton = SNew(SButton);
-	OcclusionVisibilityButton->SetVAlign(VAlign_Center);
-	OcclusionVisibilityButton->SetHAlign(HAlign_Center);
-	OcclusionVisibilityButton->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Make Occluded Objects Invisible"))));
+    TSharedRef<SButton> OcclusionVisibilityButton = SNew(SButton);
+    OcclusionVisibilityButton->SetVAlign(VAlign_Center);
+    OcclusionVisibilityButton->SetHAlign(HAlign_Center);
+    OcclusionVisibilityButton->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Make Occluded Objects Invisible"))));
     
     auto OnAutoShuffleButtonClickedLambda = []() -> FReply
     {
@@ -117,19 +117,19 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
         return FReply::Handled();
     };
 
-	auto OnOcclusionVisibilityButtonClickedLambda = []() -> FReply
-	{
-		OcclusionVisibilityImplementation();
-		return FReply::Handled();
-	};
+    auto OnOcclusionVisibilityButtonClickedLambda = []() -> FReply
+    {
+        OcclusionVisibilityImplementation();
+        return FReply::Handled();
+    };
     
     AutoShuffleButton->SetOnClicked(FOnClicked::CreateLambda(OnAutoShuffleButtonClickedLambda));
-	OcclusionVisibilityButton->SetOnClicked(FOnClicked::CreateLambda(OnOcclusionVisibilityButtonClickedLambda));
+    OcclusionVisibilityButton->SetOnClicked(FOnClicked::CreateLambda(OnOcclusionVisibilityButtonClickedLambda));
     FText Density = FText::FromString(TEXT("Density      "));
     FText Proxmity = FText::FromString(TEXT("Proxmity   "));
-	FText Organize = FText::FromString(TEXT("Organize   "));
-	FText PerGroup = FText::FromString(TEXT("PerGroup   "));
-	FText OcclusionThreshold = FText::FromString(TEXT("OccThres   "));
+    FText Organize = FText::FromString(TEXT("Organize   "));
+    FText PerGroup = FText::FromString(TEXT("PerGroup   "));
+    FText OcclusionThreshold = FText::FromString(TEXT("OccThres   "));
     
     return SNew(SDockTab).TabRole(ETabRole::NomadTab)
     [
@@ -158,62 +158,62 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
                 ProxmitySpinBox
             ]
         ]
-		+ SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center).AutoWidth()
-			[
-				SNew(STextBlock).Text(Organize)
-			]
-			+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
-			[
-				OrganizeCheckBox
-			]
-			+ SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center).AutoWidth()
-			[
-				SNew(STextBlock).Text(PerGroup)
-			]
-			+ SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center).AutoWidth()
-			[
-				PerGroupCheckBox
-			]
-		]
+        + SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center).AutoWidth()
+            [
+                SNew(STextBlock).Text(Organize)
+            ]
+            + SHorizontalBox::Slot().HAlign(HAlign_Fill)
+            [
+                OrganizeCheckBox
+            ]
+            + SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center).AutoWidth()
+            [
+                SNew(STextBlock).Text(PerGroup)
+            ]
+            + SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center).AutoWidth()
+            [
+                PerGroupCheckBox
+            ]
+        ]
         + SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
         [
             AutoShuffleButton
         ]
-		+ SVerticalBox::Slot().Padding(30.f, 10.f).AutoHeight()
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center).AutoWidth()
-			[
-				SNew(STextBlock).Text(OcclusionThreshold)
-			]
-			+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
-			[
-				OcclusionSpinBox
-			]
-		]
-		+ SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
-		[
-			OcclusionVisibilityButton
-		]
+        + SVerticalBox::Slot().Padding(30.f, 10.f).AutoHeight()
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center).AutoWidth()
+            [
+                SNew(STextBlock).Text(OcclusionThreshold)
+            ]
+            + SHorizontalBox::Slot().HAlign(HAlign_Fill)
+            [
+                OcclusionSpinBox
+            ]
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
+        [
+            OcclusionVisibilityButton
+        ]
     ];
 }
 
 void FAutoShuffleWindowModule::PluginButtonClicked()
 {
-	FGlobalTabmanager::Get()->InvokeTab(AutoShuffleWindowTabName);
+    FGlobalTabmanager::Get()->InvokeTab(AutoShuffleWindowTabName);
 }
 
 void FAutoShuffleWindowModule::AddMenuExtension(FMenuBuilder& Builder)
 {
-	Builder.AddMenuEntry(FAutoShuffleWindowCommands::Get().OpenPluginWindow);
+    Builder.AddMenuEntry(FAutoShuffleWindowCommands::Get().OpenPluginWindow);
 }
 
 void FAutoShuffleWindowModule::AddToolbarExtension(FToolBarBuilder& Builder)
 {
-	Builder.AddToolBarButton(FAutoShuffleWindowCommands::Get().OpenPluginWindow);
+    Builder.AddToolBarButton(FAutoShuffleWindowCommands::Get().OpenPluginWindow);
 }
 
 /** The folloinwg are the implemetations of the auto shuffle */
@@ -232,8 +232,8 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
 {
     float Density = FAutoShuffleWindowModule::DensitySpinBox->GetValue();
     float Proxmity = FAutoShuffleWindowModule::ProxmitySpinBox->GetValue();
-	bIsOrganizeChecked = FAutoShuffleWindowModule::OrganizeCheckBox->IsChecked();
-	bIsPerGroupChecked = FAutoShuffleWindowModule::PerGroupCheckBox->IsChecked();
+    bIsOrganizeChecked = FAutoShuffleWindowModule::OrganizeCheckBox->IsChecked();
+    bIsPerGroupChecked = FAutoShuffleWindowModule::PerGroupCheckBox->IsChecked();
     bool Result = FAutoShuffleWindowModule::ReadWhitelist();
     if (!Result)
     {
@@ -267,16 +267,16 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
             }
         }
     }
-	if (bIsOrganizeChecked && !bIsPerGroupChecked)
-	{
-		OrganizeProducts();
-	}
+    if (bIsOrganizeChecked && !bIsPerGroupChecked)
+    {
+        OrganizeProducts();
+    }
     LowerProducts();
 }
 
 void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
 {
-	UE_LOG(LogAutoShuffle, Log, TEXT("Set Occlusion Visibility"));
+    UE_LOG(LogAutoShuffle, Log, TEXT("Set Occlusion Visibility"));
 }
 
 bool FAutoShuffleWindowModule::ReadWhitelist()
@@ -412,7 +412,7 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
         TSharedPtr<FJsonObject> ProductObjectJson = (*JsonValueIt)->AsObject();
         FString NewGroupName = ProductObjectJson->GetStringField("GroupName");
         FString NewShelfName = ProductObjectJson->GetStringField("ShelfName");
-		bool bProductsDiscarded = ProductObjectJson->GetBoolField("Discard");
+        bool bProductsDiscarded = ProductObjectJson->GetBoolField("Discard");
         TArray<FAutoShuffleObject>* NewMembers = new TArray<FAutoShuffleObject>();
         TArray<TSharedPtr<FJsonValue>> Members = ProductObjectJson->GetArrayField("Members");
         for (auto MemberValueIt = Members.CreateIterator(); MemberValueIt; ++MemberValueIt)
@@ -443,19 +443,19 @@ bool FAutoShuffleWindowModule::ReadWhitelist()
             NewMembers->Top().SetName(NewName);
             NewMembers->Top().SetObjectActor(NewObjectActor);
             NewMembers->Top().SetScale(NewScale);
-			if (bProductsDiscarded)
-			{
-				NewMembers->Top().SetPosition(DiscardedProductsRegions);
-			}
+            if (bProductsDiscarded)
+            {
+                NewMembers->Top().SetPosition(DiscardedProductsRegions);
+            }
         }
         ProductsWhitelist->Add(FAutoShuffleProductGroup());
         ProductsWhitelist->Top().SetName(NewGroupName);
         ProductsWhitelist->Top().SetMembers(NewMembers);
         ProductsWhitelist->Top().SetShelfName(NewShelfName);
-		if (bProductsDiscarded)
-		{
-			ProductsWhitelist->Top().Discard();
-		}
+        if (bProductsDiscarded)
+        {
+            ProductsWhitelist->Top().Discard();
+        }
     }
     
 #ifdef VERBOSE_AUTO_SHUFFLE
@@ -586,11 +586,11 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
             {
                 continue;
             }
-			// check if the whole group of products have been discarded in whitelist
-			if (ProductGroupIt->IsDiscarded())
-			{
-				continue;
-			}
+            // check if the whole group of products have been discarded in whitelist
+            if (ProductGroupIt->IsDiscarded())
+            {
+                continue;
+            }
             // get a centerilized anchor for placing products
             int ShelfBaseIdx = FMath::RandRange(0, ShelfBaseZ.Num() - 1);
             FVector Anchor;
@@ -714,11 +714,11 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                         ProductIt->SetShelfOffset(ShelfOffsetZ[ShelfBaseIdx]);
                         // see if the object could fit the anchor position
                         ProductIt->GetObjectActor()->GetOverlappingActors(OverlappingActors);
-						bool bHasCollision = OverlappingActors.Num() != 0;
-						// see if the product is in the bound of the shelf
-						ProductIt->GetObjectActor()->GetActorBounds(false, ProductOrigin, ProductExtent);
-						bool bIsInBound = ProductOrigin.Y - ProductExtent.Y >= BoundingBoxOrigin.Y - BoundingBoxExtent.Y
-							&& ProductOrigin.Y + ProductExtent.Y <= BoundingBoxOrigin.Y + BoundingBoxExtent.Y;
+                        bool bHasCollision = OverlappingActors.Num() != 0;
+                        // see if the product is in the bound of the shelf
+                        ProductIt->GetObjectActor()->GetActorBounds(false, ProductOrigin, ProductExtent);
+                        bool bIsInBound = ProductOrigin.Y - ProductExtent.Y >= BoundingBoxOrigin.Y - BoundingBoxExtent.Y
+                            && ProductOrigin.Y + ProductExtent.Y <= BoundingBoxOrigin.Y + BoundingBoxExtent.Y;
                         if (/** no collision and inbound */ !bHasCollision && bIsInBound)
                         {
                             break;
@@ -738,14 +738,14 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                                 Anchor.Y -= AlreadyTriedTimes * (ProductWidth + FMath::RandRange(float(AUTO_SHUFFLE_Y_TWO_END_OFFSET * 0.5f), AUTO_SHUFFLE_Y_TWO_END_OFFSET));
                             }
                         }
-						// else, randomly find another anchor point
-						else
-						{
-							ShelfBaseIdx = FMath::RandRange(0, ShelfBaseZ.Num() - 1);
-							Anchor.Z = ShelfBaseZ[ShelfBaseIdx];
-							Anchor.Y = FMath::RandRange(float(BoundingBoxOrigin.Y - BoundingBoxExtent.Y + AUTO_SHUFFLE_Y_TWO_END_OFFSET), float(BoundingBoxOrigin.Y + BoundingBoxExtent.Y - AUTO_SHUFFLE_Y_TWO_END_OFFSET));
-							Anchor.X = BoundingBoxOrigin.X - BoundingBoxExtent.X;
-						}
+                        // else, randomly find another anchor point
+                        else
+                        {
+                            ShelfBaseIdx = FMath::RandRange(0, ShelfBaseZ.Num() - 1);
+                            Anchor.Z = ShelfBaseZ[ShelfBaseIdx];
+                            Anchor.Y = FMath::RandRange(float(BoundingBoxOrigin.Y - BoundingBoxExtent.Y + AUTO_SHUFFLE_Y_TWO_END_OFFSET), float(BoundingBoxOrigin.Y + BoundingBoxExtent.Y - AUTO_SHUFFLE_Y_TWO_END_OFFSET));
+                            Anchor.X = BoundingBoxOrigin.X - BoundingBoxExtent.X;
+                        }
                     }
                     // if collision all the time, discard
                     if (AlreadyTriedTimes >= AUTO_SHUFFLE_MAX_TRY_TIMES)
@@ -780,10 +780,10 @@ void FAutoShuffleWindowModule::PlaceProducts(float Density, float Proxmity)
                     }
                 }
             }
-			if (bIsOrganizeChecked && bIsPerGroupChecked)
-			{
-				OrganizeProducts();
-			}
+            if (bIsOrganizeChecked && bIsPerGroupChecked)
+            {
+                OrganizeProducts();
+            }
         }
     }
 }
@@ -830,15 +830,15 @@ void FAutoShuffleWindowModule::OrganizeProducts()
             }
         }
         // sort them according to bound.Y from low to high for 001 shelf
-		if (ShelfIt->GetName() == "BP_ShelfMain_001")
-		{
-			Products.Sort(OrganizeProductsPredicateLowToHigh);
-		}
-		// from high to low for 002 shelf
-		else
-		{
-			Products.Sort(OrganizeProductsPredicateHighToLow);
-		}
+        if (ShelfIt->GetName() == "BP_ShelfMain_001")
+        {
+            Products.Sort(OrganizeProductsPredicateLowToHigh);
+        }
+        // from high to low for 002 shelf
+        else
+        {
+            Products.Sort(OrganizeProductsPredicateHighToLow);
+        }
 
         // iterate through all the sorted actors
         for (auto ProductIt = Products.CreateIterator(); ProductIt; ++ProductIt)
@@ -848,28 +848,28 @@ void FAutoShuffleWindowModule::OrganizeProducts()
             {
                 // try to push them to left for 001 shelf
                 FVector Position = (*ProductIt)->GetActorLocation();
-				if (ShelfIt->GetName() == "BP_ShelfMain_001")
-				{
-					Position.Y -= AUTO_SHUFFLE_INC_STEP;
-				}
-				// to right for 002 shelf
-				else
-				{
-					Position.Y += AUTO_SHUFFLE_INC_STEP;
-				}
+                if (ShelfIt->GetName() == "BP_ShelfMain_001")
+                {
+                    Position.Y -= AUTO_SHUFFLE_INC_STEP;
+                }
+                // to right for 002 shelf
+                else
+                {
+                    Position.Y += AUTO_SHUFFLE_INC_STEP;
+                }
                 (*ProductIt)->SetActorLocation(Position);
                 // check if the object is still in the bound
                 FVector ProductOrigin, ProductExtent;
                 (*ProductIt)->GetActorBounds(false, ProductOrigin, ProductExtent);
-				bool IsInBound;
-				if (ShelfIt->GetName() == "BP_ShelfMain_001")
-				{
-					IsInBound = ProductOrigin.Y - ProductExtent.Y >= ShelfOrigin.Y - ShelfExtent.Y;
-				}
-				else
-				{
-					IsInBound = ProductOrigin.Y + ProductExtent.Y <= ShelfOrigin.Y + ShelfExtent.Y;
-				}
+                bool IsInBound;
+                if (ShelfIt->GetName() == "BP_ShelfMain_001")
+                {
+                    IsInBound = ProductOrigin.Y - ProductExtent.Y >= ShelfOrigin.Y - ShelfExtent.Y;
+                }
+                else
+                {
+                    IsInBound = ProductOrigin.Y + ProductExtent.Y <= ShelfOrigin.Y + ShelfExtent.Y;
+                }
                 // check if there's no collision
                 TArray<AActor*> OverlappingActors;
                 (*ProductIt)->GetOverlappingActors(OverlappingActors);
@@ -877,14 +877,14 @@ void FAutoShuffleWindowModule::OrganizeProducts()
                 // if not in the bound or has collision, restore and proceed to the next product
                 if (!IsInBound || !HasNoCollision)
                 {
-					if (ShelfIt->GetName() == "BP_ShelfMain_001")
-					{
-						Position.Y += AUTO_SHUFFLE_INC_STEP;
-					}
-					else
-					{
-						Position.Y -= AUTO_SHUFFLE_INC_STEP;
-					}
+                    if (ShelfIt->GetName() == "BP_ShelfMain_001")
+                    {
+                        Position.Y += AUTO_SHUFFLE_INC_STEP;
+                    }
+                    else
+                    {
+                        Position.Y -= AUTO_SHUFFLE_INC_STEP;
+                    }
                     (*ProductIt)->SetActorLocation(Position);
                     break;
                 }
@@ -915,10 +915,10 @@ bool FAutoShuffleWindowModule::OrganizeProductsPredicateLowToHigh(const AActor &
 
 bool FAutoShuffleWindowModule::OrganizeProductsPredicateHighToLow(const AActor &Actor1, const AActor &Actor2)
 {
-	FVector Actor1Origin, Actor1Extent, Actor2Origin, Actor2Extent;
-	Actor1.GetActorBounds(false, Actor1Origin, Actor1Extent);
-	Actor2.GetActorBounds(false, Actor2Origin, Actor2Extent);
-	return Actor1Origin.Y - Actor1Extent.Y > Actor2Origin.Y - Actor2Extent.Y;
+    FVector Actor1Origin, Actor1Extent, Actor2Origin, Actor2Extent;
+    Actor1.GetActorBounds(false, Actor1Origin, Actor1Extent);
+    Actor2.GetActorBounds(false, Actor2Origin, Actor2Extent);
+    return Actor1Origin.Y - Actor1Extent.Y > Actor2Origin.Y - Actor2Extent.Y;
 }
 
 FAutoShuffleObject::FAutoShuffleObject()
@@ -1184,7 +1184,7 @@ FAutoShuffleProductGroup::FAutoShuffleProductGroup()
     Members = nullptr;
     Name = TEXT("Uninitialized Object Name");
     ShelfName = TEXT("Unintialized Object Name");
-	bIsDiscarded = false;
+    bIsDiscarded = false;
 }
 
 FAutoShuffleProductGroup::~FAutoShuffleProductGroup()
@@ -1231,19 +1231,19 @@ FString FAutoShuffleProductGroup::GetShelfName() const
 
 void FAutoShuffleProductGroup::Discard()
 {
-	bIsDiscarded = true;
+    bIsDiscarded = true;
 }
 
 void FAutoShuffleProductGroup::ResetDiscard()
 {
-	bIsDiscarded = false;
+    bIsDiscarded = false;
 }
 
 bool FAutoShuffleProductGroup::IsDiscarded()
 {
-	return bIsDiscarded;
+    return bIsDiscarded;
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+    
 IMPLEMENT_MODULE(FAutoShuffleWindowModule, AutoShuffleWindow)

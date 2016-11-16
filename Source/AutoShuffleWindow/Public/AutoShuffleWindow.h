@@ -14,22 +14,22 @@ class FAutoShuffleWindowModule : public IModuleInterface
 {
 public:
 
-	/** IModuleInterface implementation */
-	virtual void StartupModule() override;
-	virtual void ShutdownModule() override;
-	
-	/** This function will be bound to Command (by default it will bring up plugin window) */
-	void PluginButtonClicked();
-	
+    /** IModuleInterface implementation */
+    virtual void StartupModule() override;
+    virtual void ShutdownModule() override;
+    
+    /** This function will be bound to Command (by default it will bring up plugin window) */
+    void PluginButtonClicked();
+    
 private:
 
-	void AddToolbarExtension(FToolBarBuilder& Builder);
-	void AddMenuExtension(FMenuBuilder& Builder);
+    void AddToolbarExtension(FToolBarBuilder& Builder);
+    void AddMenuExtension(FMenuBuilder& Builder);
 
-	TSharedRef<class SDockTab> OnSpawnPluginTab(const class FSpawnTabArgs& SpawnTabArgs);
+    TSharedRef<class SDockTab> OnSpawnPluginTab(const class FSpawnTabArgs& SpawnTabArgs);
 
 private:
-	TSharedPtr<class FUICommandList> PluginCommands;
+    TSharedPtr<class FUICommandList> PluginCommands;
     
 
 /** The following are the implementations of the auto shuffle */
@@ -37,8 +37,8 @@ private:
     /** The main entry of the algorithm */
     static void AutoShuffleImplementation();
 
-	/** The main entry of the occlusion visibility function */
-	static void OcclusionVisibilityImplementation();
+    /** The main entry of the occlusion visibility function */
+    static void OcclusionVisibilityImplementation();
     
     /** SpinBox for Density -- the density of the productions */
     static TSharedRef<SSpinBox<float>> DensitySpinBox;
@@ -46,21 +46,21 @@ private:
     /** SpinBox for Proxmity -- how similar products are placed */
     static TSharedRef<SSpinBox<float>> ProxmitySpinBox;
 
-	/** SpinBox for controlling the threshold of the occlusion percentage
-	 *  to be consdered as invisible */
-	static TSharedRef<SSpinBox<float>> OcclusionSpinBox;
+    /** SpinBox for controlling the threshold of the occlusion percentage
+     *  to be consdered as invisible */
+    static TSharedRef<SSpinBox<float>> OcclusionSpinBox;
 
-	/** Check box for toggling product organizing */
-	static TSharedRef<SCheckBox> OrganizeCheckBox;
+    /** Check box for toggling product organizing */
+    static TSharedRef<SCheckBox> OrganizeCheckBox;
 
-	/** The status of the organize checkbox when button clicked */
-	static bool bIsOrganizeChecked;
+    /** The status of the organize checkbox when button clicked */
+    static bool bIsOrganizeChecked;
 
-	/** Check box for per group organizing */
-	static TSharedRef<SCheckBox> PerGroupCheckBox;
+    /** Check box for per group organizing */
+    static TSharedRef<SCheckBox> PerGroupCheckBox;
 
-	/** The status of the pergroup checkbox when button clicked */
-	static bool bIsPerGroupChecked;
+    /** The status of the pergroup checkbox when button clicked */
+    static bool bIsPerGroupChecked;
     
     /** The regions for the discarded products */
     static FVector DiscardedProductsRegions;
@@ -89,8 +89,8 @@ private:
     /** Predicate used for sorting AActors in OrganizeProducts from low to high */
     static bool OrganizeProductsPredicateLowToHigh(const AActor &Actor1, const AActor &Actor2);
 
-	/** Predicate used for sorting AActors in OrganizeProducts from high to low */
-	static bool OrganizeProductsPredicateHighToLow(const AActor &Actor1, const AActor &Actor2);
+    /** Predicate used for sorting AActors in OrganizeProducts from high to low */
+    static bool OrganizeProductsPredicateHighToLow(const AActor &Actor1, const AActor &Actor2);
 
 public:
     /** Static method for parsing the Whitelist written in Json */
@@ -250,14 +250,14 @@ public:
     /** Get the shelf name */
     FString GetShelfName() const;
 
-	/** Discard the whole groups. Defined in the whitelist */
-	void Discard();
+    /** Discard the whole groups. Defined in the whitelist */
+    void Discard();
 
-	/** Reset the bIsDiscarded variable */
-	void ResetDiscard();
+    /** Reset the bIsDiscarded variable */
+    void ResetDiscard();
 
-	/** Return if the whole group is discarded */
-	bool IsDiscarded();
+    /** Return if the whole group is discarded */
+    bool IsDiscarded();
     
 private:
     /** The members of the product. Proxmity is used for deciding placing members */
@@ -269,9 +269,9 @@ private:
     /** The name of the shelf that this group belongs to */
     FString ShelfName;
 
-	/** Whether the whole group is discarded by whitelist */
-	/** This is extremely important */
-	bool bIsDiscarded;
+    /** Whether the whole group is discarded by whitelist */
+    /** This is extremely important */
+    bool bIsDiscarded;
 };
 
 
