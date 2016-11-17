@@ -10,3 +10,4 @@ Config/
 
 *.ipynb_checkpoints/
 Resources/Whitelist.json
+Resources/OcclusionVisibilityDescription.csv

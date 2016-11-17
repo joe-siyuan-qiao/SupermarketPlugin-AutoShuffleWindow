@@ -453,17 +453,17 @@ void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
     }
     FString PluginDir = FPaths::Combine(*FPaths::GamePluginsDir(), TEXT("AutoShuffleWindow"));
     FString ResourseDir = FPaths::Combine(*PluginDir, TEXT("Resources"));
-    FString FileDir = FPaths::Combine(*ResourseDir, TEXT("OcclusionVisibilityDescription"));
+    FString FileDir = FPaths::Combine(*ResourseDir, TEXT("OcclusionVisibilityDescription.csv"));
     FString WriteFileContents = "";
+    
     for (int ActorIdx = 0; ActorIdx < ActorArray.Num(); ++ActorIdx)
     {
         if (TotalPixelCount[ActorIdx] != 0)
         {
-            WriteFileContents += FString::Printf(TEXT("%s: %f (%d / %d)\n"), *ActorNameArray[ActorIdx], (VisiblePixelCount[ActorIdx] + 0.0f) / TotalPixelCount[ActorIdx], VisiblePixelCount[ActorIdx], TotalPixelCount[ActorIdx]);
-        }
-        else
-        {
-            WriteFileContents += FString::Printf(TEXT("%s: %f (%d / %d)\n"), *ActorNameArray[ActorIdx], 0.0f, VisiblePixelCount[ActorIdx], TotalPixelCount[ActorIdx]);
+            if ((VisiblePixelCount[ActorIdx] + 0.0f) / TotalPixelCount[ActorIdx] > OcclusionThreshold)
+            {
+                WriteFileContents += FString::Printf(TEXT("%s\n"), *ActorNameArray[ActorIdx]);
+            }
         }
     }
     FFileHelper::SaveStringToFile(WriteFileContents, *FileDir);
