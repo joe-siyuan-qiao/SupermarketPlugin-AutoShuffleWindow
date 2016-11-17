@@ -315,6 +315,7 @@ void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
     }
     // gather all the valid static mesh actors
     TArray<AStaticMeshActor*> ActorArray;
+    TArray<FString> ActorNameArray;
     for (auto GroupIt = ProductsWhitelist->CreateIterator(); GroupIt; ++GroupIt)
     {
         for (auto ProductIt = GroupIt->GetMembers()->CreateIterator(); ProductIt; ++ProductIt)
@@ -336,6 +337,7 @@ void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
             if (StaticMeshActor)
             {
                 ActorArray.Add(StaticMeshActor);
+                ActorNameArray.Add(ProductIt->GetName());
             }
         }
     }
@@ -385,24 +387,88 @@ void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
                 Vec3.X
             );
             TArray<F2DPoint> *RenderingPoints = TriangleRasterizer(Pointf1, Pointf2, Pointf3);
-            if (RenderingPoints->Num() == 0)
+            if (RenderingPoints->Num() > 0)
             {
-                continue;
-            }
-            // Render them to the device
-            for (auto PointIt = RenderingPoints->CreateIterator(); PointIt; ++PointIt)
-            {
-                if (PointIt->X < 0 || PointIt->X >= OCCLUSION_VISIBILITY_RESOLUTION_WIDTH ||
-                    PointIt->Y < 0 || PointIt->Y >= OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT)
+                // Render them to the device
+                for (auto PointIt = RenderingPoints->CreateIterator(); PointIt; ++PointIt)
                 {
-                    continue;
+                    if (PointIt->X < 0 || PointIt->X >= OCCLUSION_VISIBILITY_RESOLUTION_WIDTH ||
+                        PointIt->Y < 0 || PointIt->Y >= OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT)
+                    {
+                        continue;
+                    }
+                    RenderingDevice[PointIt->Y][PointIt->X].Add(FOcclusionPixel(ActorIdx, PointIt->Z));
                 }
-                RenderingDevice[PointIt->Y][PointIt->X].Add(FOcclusionPixel(ActorIdx, PointIt->Z));
+            }
+            delete RenderingPoints;
+            RenderingPoints = TriangleRasterizer(Pointf1, Pointf3, Pointf2);
+            if (RenderingPoints->Num() > 0)
+            {
+                // Render them to the device
+                for (auto PointIt = RenderingPoints->CreateIterator(); PointIt; ++PointIt)
+                {
+                    if (PointIt->X < 0 || PointIt->X >= OCCLUSION_VISIBILITY_RESOLUTION_WIDTH ||
+                        PointIt->Y < 0 || PointIt->Y >= OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT)
+                    {
+                        continue;
+                    }
+                    RenderingDevice[PointIt->Y][PointIt->X].Add(FOcclusionPixel(ActorIdx, PointIt->Z));
+                }
             }
             delete RenderingPoints;
         }
     }
     UE_LOG(LogAutoShuffle, Log, TEXT("%d: %d: %d ends"), DateTime.Now().GetMinute(), DateTime.Now().GetSecond(), DateTime.Now().GetMillisecond());
+    // Organize the pixels: one product can only have one depth at one pixel
+    // the smallest (because we are looking from small to big) product is visible; others are not
+    int *VisiblePixelCount = new int[ActorArray.Num()]();
+    int *TotalPixelCount = new int[ActorArray.Num()]();
+    for (int y = 0; y < OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT; ++y)
+    {
+        for (int x = 0; x < OCCLUSION_VISIBILITY_RESOLUTION_WIDTH; ++x)
+        {
+            TArray<FOcclusionPixel> &PixelArray = RenderingDevice[y][x];
+            if (PixelArray.Num() == 0)
+            {
+                continue;
+            }
+            // Sort the pixel array according to depth (from small to big)
+            PixelArray.Sort(FOcclusionPixel::OrganizePixelPredicateLowToHigh);
+            VisiblePixelCount[PixelArray[0].ActorIdx] += 1;
+            TArray<int> RelatedActorIdxArray;
+            for (int PixelIdx = 0; PixelIdx < PixelArray.Num(); ++PixelIdx)
+            {
+                int RelatedActorIdx = PixelArray[PixelIdx].ActorIdx, Dummy;
+                bool ActorIdxFound = RelatedActorIdxArray.Find(RelatedActorIdx, Dummy);
+                if (ActorIdxFound == false)
+                {
+                    RelatedActorIdxArray.Add(RelatedActorIdx);
+                }
+            }
+            for (auto RelatedActorIt = RelatedActorIdxArray.CreateIterator(); RelatedActorIt; ++RelatedActorIt)
+            {
+                TotalPixelCount[*RelatedActorIt] += 1;
+            }
+        }
+    }
+    FString PluginDir = FPaths::Combine(*FPaths::GamePluginsDir(), TEXT("AutoShuffleWindow"));
+    FString ResourseDir = FPaths::Combine(*PluginDir, TEXT("Resources"));
+    FString FileDir = FPaths::Combine(*ResourseDir, TEXT("OcclusionVisibilityDescription"));
+    FString WriteFileContents = "";
+    for (int ActorIdx = 0; ActorIdx < ActorArray.Num(); ++ActorIdx)
+    {
+        if (TotalPixelCount[ActorIdx] != 0)
+        {
+            WriteFileContents += FString::Printf(TEXT("%s: %f (%d / %d)\n"), *ActorNameArray[ActorIdx], (VisiblePixelCount[ActorIdx] + 0.0f) / TotalPixelCount[ActorIdx], VisiblePixelCount[ActorIdx], TotalPixelCount[ActorIdx]);
+        }
+        else
+        {
+            WriteFileContents += FString::Printf(TEXT("%s: %f (%d / %d)\n"), *ActorNameArray[ActorIdx], 0.0f, VisiblePixelCount[ActorIdx], TotalPixelCount[ActorIdx]);
+        }
+    }
+    FFileHelper::SaveStringToFile(WriteFileContents, *FileDir);
+    delete[] VisiblePixelCount;
+    delete[] TotalPixelCount;
 }
 
 bool FAutoShuffleWindowModule::ReadWhitelist()
@@ -1461,6 +1527,11 @@ FOcclusionPixel::FOcclusionPixel()
 {
     ActorIdx = -1;
     Depth = 1e10f;
+}
+
+bool FOcclusionPixel::OrganizePixelPredicateLowToHigh(const FOcclusionPixel &Pixel1, const FOcclusionPixel &Pixel2)
+{
+    return Pixel1.Depth < Pixel2.Depth;
 }
 
 #undef LOCTEXT_NAMESPACE

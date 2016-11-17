@@ -306,6 +306,9 @@ public:
     int ActorIdx; float Depth;
     FOcclusionPixel(int NewActorIdx, float NewDepth);
     FOcclusionPixel();
+
+    /** Predicate used for sorting pixel from low to high wrt depth */
+    static bool OrganizePixelPredicateLowToHigh(const FOcclusionPixel &Pixel1, const FOcclusionPixel &Pixels2);
 };
 
 
