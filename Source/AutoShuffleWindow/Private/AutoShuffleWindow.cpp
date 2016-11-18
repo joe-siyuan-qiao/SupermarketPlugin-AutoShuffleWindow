@@ -13,6 +13,12 @@
 /** The following header files are not from the template */
 #include "Json.h"
 #include "Developer/RawMesh/Public/RawMesh.h"
+// the following header files for convex decomposition
+#include "Runtime/Engine/Public/StaticMeshResources.h"
+#include "BusyCursor.h"
+#include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
+#include "Editor/UnrealEd/Private/ConvexDecompTool.h"
+#include "Editor/UnrealEd/Private/GeomFitUtils.h"
 
 static const FName AutoShuffleWindowTabName("AutoShuffleWindow");
 
@@ -112,6 +118,11 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
     OcclusionVisibilityButton->SetHAlign(HAlign_Center);
     OcclusionVisibilityButton->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Generate Occlusion Description File"))));
     
+    TSharedRef<SButton> BatchConvexDecompButton = SNew(SButton);
+    BatchConvexDecompButton->SetVAlign(VAlign_Center);
+    BatchConvexDecompButton->SetHAlign(HAlign_Center);
+    BatchConvexDecompButton->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Batch Convex Decomposition"))));
+    
     auto OnAutoShuffleButtonClickedLambda = []() -> FReply
     {
         AutoShuffleImplementation();
@@ -123,9 +134,16 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
         OcclusionVisibilityImplementation();
         return FReply::Handled();
     };
+
+    auto OnBatchConvexDecompButtonClickedLambda = []() -> FReply
+    {
+        BatchConvexDecomposition();
+        return FReply::Handled();
+    };
     
     AutoShuffleButton->SetOnClicked(FOnClicked::CreateLambda(OnAutoShuffleButtonClickedLambda));
     OcclusionVisibilityButton->SetOnClicked(FOnClicked::CreateLambda(OnOcclusionVisibilityButtonClickedLambda));
+    BatchConvexDecompButton->SetOnClicked(FOnClicked::CreateLambda(OnBatchConvexDecompButtonClickedLambda));
     FText Density = FText::FromString(TEXT("Density      "));
     FText Proxmity = FText::FromString(TEXT("Proxmity   "));
     FText Organize = FText::FromString(TEXT("Organize   "));
@@ -198,6 +216,10 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
         + SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
         [
             OcclusionVisibilityButton
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
+        [
+            BatchConvexDecompButton
         ]
     ];
 }
@@ -464,6 +486,88 @@ void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
     }
     delete[] VisiblePixelCount;
     delete[] TotalPixelCount;
+}
+
+void FAutoShuffleWindowModule::BatchConvexDecomposition()
+{
+    // Batch convex decomposition on every product
+    // Reference: https://github.com/EpicGames/UnrealEngine/blob/55c9f3ba0010e2e483d49a4cd378f36a46601fad/Engine/Source/Editor/StaticMeshEditor/Private/StaticMeshEditor.cpp#L1625
+    UE_LOG(LogAutoShuffle, Log, TEXT("Start Batch Convex Decomposition"));
+    ReadWhitelist();
+    float InAccuracy = 1.f;
+    int32 InMaxHullVerts = 32;
+    for (auto GroupIt = ProductsWhitelist->CreateIterator(); GroupIt; ++GroupIt)
+    {
+        for (auto ProductIt = GroupIt->GetMembers()->CreateIterator(); ProductIt; ++ProductIt)
+        {
+            AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(ProductIt->GetObjectActor());
+            if (!StaticMeshActor)
+            {
+                continue;
+            }
+            if (!StaticMeshActor->GetStaticMeshComponent())
+            {
+                continue;
+            }
+            if (!StaticMeshActor->GetStaticMeshComponent()->StaticMesh)
+            {
+                continue;
+            }
+            if (!StaticMeshActor->GetStaticMeshComponent()->StaticMesh->RenderData)
+            {
+                continue;
+            }
+            FStaticMeshLODResources &LODModel = StaticMeshActor->GetStaticMeshComponent()->StaticMesh->RenderData->LODResources[0];
+            // Start a busy cursor so the user has feedback while waiting
+            const FScopedBusyCursor BusyCursor;
+            // make vertex buffer
+            int32 NumVerts = LODModel.VertexBuffer.GetNumVertices();
+            TArray<FVector> Verts;
+            for (int32 VertIdx = 0; VertIdx < NumVerts; ++VertIdx)
+            {
+                FVector Vert = LODModel.PositionVertexBuffer.VertexPosition(VertIdx);
+                Verts.Add(Vert);
+            }
+            // grab all indices
+            TArray<uint32> AllIndices;
+            LODModel.IndexBuffer.GetCopy(AllIndices);
+            // only copy indices that have collision enabled
+            TArray<uint32> CollidingIndices;
+            for (const FStaticMeshSection& Section : LODModel.Sections)
+            {
+                if (Section.bEnableCollision)
+                {
+                    for (uint32 IndexIdx = Section.FirstIndex; IndexIdx < Section.FirstIndex + (Section.NumTriangles * 3); IndexIdx++)
+                    {
+                        CollidingIndices.Add(AllIndices[IndexIdx]);
+                    }
+                }
+            }
+            // get the bodysetup we are going to put the collision into
+            UBodySetup *BodySetup = StaticMeshActor->GetStaticMeshComponent()->StaticMesh->BodySetup;
+            if (BodySetup)
+            {
+                BodySetup->RemoveSimpleCollision();
+            }
+            else
+            {
+                // otherwise, create one here.
+                StaticMeshActor->GetStaticMeshComponent()->StaticMesh->CreateBodySetup();
+                BodySetup = StaticMeshActor->GetStaticMeshComponent()->StaticMesh->BodySetup;
+            }
+            // run actual util to do the work (if we have some valid input)
+            if (Verts.Num() >= 3 && CollidingIndices.Num() > 3)
+            {
+                DecomposeMeshToHulls(BodySetup, Verts, CollidingIndices, InAccuracy, InMaxHullVerts);
+            }
+            // refresh collision change back to static mesh components
+            RefreshCollisionChange(StaticMeshActor->GetStaticMeshComponent()->StaticMesh);
+            // mark mesh as dirty
+            StaticMeshActor->GetStaticMeshComponent()->StaticMesh->MarkPackageDirty();
+            // mark the static mesh for collision customization
+            StaticMeshActor->GetStaticMeshComponent()->StaticMesh->bCustomizedCollision = true;
+        }
+    }
 }
 
 bool FAutoShuffleWindowModule::ReadWhitelist()

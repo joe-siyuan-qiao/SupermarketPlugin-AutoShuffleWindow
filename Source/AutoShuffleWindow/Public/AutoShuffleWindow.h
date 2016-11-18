@@ -104,6 +104,9 @@ private:
     /** The rasterization for counter-clockwise triangle, used in computing occlusion */
     static TArray<class F2DPoint>* TriangleRasterizer(const class F2DPointf &V1, const class F2DPointf &V2, const class F2DPointf &V3);
 
+    /** Batch Convex Decomposition of the Products List */
+    static void BatchConvexDecomposition();
+
 public:
     /** Static method for parsing the Whitelist written in Json */
     static TSharedPtr<FJsonObject> ParseJSON(const FString& FileContents, const FString& NameForErrors, bool bSilent);
