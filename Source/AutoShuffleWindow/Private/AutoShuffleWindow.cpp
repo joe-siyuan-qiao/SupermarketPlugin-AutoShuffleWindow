@@ -25,7 +25,7 @@ static const FName AutoShuffleWindowTabName("AutoShuffleWindow");
 #define LOCTEXT_NAMESPACE "FAutoShuffleWindowModule"
 DEFINE_LOG_CATEGORY(LogAutoShuffle);
 
-#define VERBOSE_AUTO_SHUFFLE
+// #define VERBOSE_AUTO_SHUFFLE
 #define AUTO_SHUFFLE_Y_TWO_END_OFFSET 50.f
 #define AUTO_SHUFFLE_MAX_TRY_TIMES 50
 #define AUTO_SHUFFLE_INC_STEP 0.5f
@@ -123,6 +123,12 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
     BatchConvexDecompButton->SetHAlign(HAlign_Center);
     BatchConvexDecompButton->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Batch Convex Decomposition"))));
     
+    TSharedRef<SButton> NonProductsVisibleToggleButton = SNew(SButton);
+    NonProductsVisibleToggleButton->SetVAlign(VAlign_Center);
+    NonProductsVisibleToggleButton->SetHAlign(HAlign_Center);
+    NonProductsVisibleToggleButton->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Toggle Non Products Visibility"))));
+    bIsNonProductsVisible = true;
+
     auto OnAutoShuffleButtonClickedLambda = []() -> FReply
     {
         AutoShuffleImplementation();
@@ -140,10 +146,19 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
         BatchConvexDecomposition();
         return FReply::Handled();
     };
+
+    auto OnNonProductsVisibleToggleButtonClickedLamda = []() -> FReply
+    {
+        bIsNonProductsVisible = !bIsNonProductsVisible;
+        UE_LOG(LogAutoShuffle, Log, TEXT("Non Product Visibility Set to %d"), bIsNonProductsVisible);
+        NonProductsVisibilityTogglingImplementation();
+        return FReply::Handled();
+    };
     
     AutoShuffleButton->SetOnClicked(FOnClicked::CreateLambda(OnAutoShuffleButtonClickedLambda));
     OcclusionVisibilityButton->SetOnClicked(FOnClicked::CreateLambda(OnOcclusionVisibilityButtonClickedLambda));
     BatchConvexDecompButton->SetOnClicked(FOnClicked::CreateLambda(OnBatchConvexDecompButtonClickedLambda));
+    NonProductsVisibleToggleButton->SetOnClicked(FOnClicked::CreateLambda(OnNonProductsVisibleToggleButtonClickedLamda));
     FText Density = FText::FromString(TEXT("Density      "));
     FText Proxmity = FText::FromString(TEXT("Proxmity   "));
     FText Organize = FText::FromString(TEXT("Organize   "));
@@ -221,6 +236,10 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
         [
             BatchConvexDecompButton
         ]
+        + SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
+        [
+            NonProductsVisibleToggleButton
+        ]
     ];
 }
 
@@ -250,6 +269,7 @@ TArray<FAutoShuffleProductGroup>* FAutoShuffleWindowModule::ProductsWhitelist = 
 FVector FAutoShuffleWindowModule::DiscardedProductsRegions;
 bool FAutoShuffleWindowModule::bIsOrganizeChecked;
 bool FAutoShuffleWindowModule::bIsPerGroupChecked;
+bool FAutoShuffleWindowModule::bIsNonProductsVisible;
 
 // the rendering device: a very big two-dimensional tarray of index of actors, and depth
 TArray<class FOcclusionPixel> FAutoShuffleWindowModule::RenderingDevice[OCCLUSION_VISIBILITY_RESOLUTION_HEIGHT][OCCLUSION_VISIBILITY_RESOLUTION_WIDTH];
@@ -293,9 +313,12 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
             }
         }
     }
-    if (bIsOrganizeChecked && !bIsPerGroupChecked)
+    if (bIsOrganizeChecked)
     {
-        OrganizeProducts();
+        for (int i = 0; i < 50; ++i)
+        {
+            OrganizeProducts();
+        }
     }
     LowerProducts();
 }
@@ -566,6 +589,42 @@ void FAutoShuffleWindowModule::BatchConvexDecomposition()
             StaticMeshActor->GetStaticMeshComponent()->StaticMesh->MarkPackageDirty();
             // mark the static mesh for collision customization
             StaticMeshActor->GetStaticMeshComponent()->StaticMesh->bCustomizedCollision = true;
+        }
+    }
+}
+
+void FAutoShuffleWindowModule::NonProductsVisibilityTogglingImplementation()
+{
+    auto EditorWorld = GEditor->GetEditorWorldContext().World();
+    if (bIsNonProductsVisible == true)
+    {
+        for (TActorIterator<AActor> ActorIt(EditorWorld); ActorIt; ++ActorIt)
+        {
+            ActorIt->SetActorHiddenInGame(false);
+        }
+    }
+    else
+    {
+        ReadWhitelist();
+        for (TActorIterator<AActor> ActorIt(EditorWorld); ActorIt; ++ActorIt)
+        {
+            ActorIt->SetActorHiddenInGame(true);
+        }
+        for (auto GroupIt = ProductsWhitelist->CreateIterator(); GroupIt; ++GroupIt)
+        {
+            for (auto ProductIt = GroupIt->GetMembers()->CreateIterator(); ProductIt; ++ProductIt)
+            {
+                if (ProductIt->GetObjectActor())
+                {
+                    FVector ProductLocation = ProductIt->GetObjectActor()->GetActorLocation();
+                    if (FMath::Abs(ProductLocation.X - DiscardedProductsRegions.X) > 0.1 ||
+                        FMath::Abs(ProductLocation.Y - DiscardedProductsRegions.Y) > 0.1 ||
+                        FMath::Abs(ProductLocation.Z - DiscardedProductsRegions.Z) > 0.1)
+                    {
+                        ProductIt->GetObjectActor()->SetActorHiddenInGame(false);
+                    }
+                }
+            }
         }
     }
 }

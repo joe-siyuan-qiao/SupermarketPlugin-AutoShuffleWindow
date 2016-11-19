@@ -107,6 +107,12 @@ private:
     /** Batch Convex Decomposition of the Products List */
     static void BatchConvexDecomposition();
 
+    /** The status for toggling non-products visibility */
+    static bool bIsNonProductsVisible;
+
+    /** The implementation of toggling the non-products visibility */
+    static void NonProductsVisibilityTogglingImplementation();
+
 public:
     /** Static method for parsing the Whitelist written in Json */
     static TSharedPtr<FJsonObject> ParseJSON(const FString& FileContents, const FString& NameForErrors, bool bSilent);

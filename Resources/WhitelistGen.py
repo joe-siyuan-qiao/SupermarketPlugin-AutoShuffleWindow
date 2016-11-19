@@ -2,6 +2,7 @@
 # See the script to know how to use this
 
 from copy import deepcopy
+from random import shuffle
 import json
 
 # Your code start here
@@ -231,7 +232,7 @@ productgroups.append({
     'ShelfName': 'BP_ShelfMain_002',
     'Repeat': range(1, 501),
     'Scale': 1.0,
-    'Discard': True
+    'Discard': False
 })
 
 productgroups.append({
@@ -270,7 +271,9 @@ JsonProducts = []
 for productgroup in productgroups:
     JsonProductGroup = deepcopy(productgroup)
     JsonProductGroup['Members'] = []
-    for cnt in productgroup['Repeat']:
+    repeatgroup = productgroup['Repeat']
+    shuffle(repeatgroup)
+    for cnt in repeatgroup:
         JsonProductGroup['Members'].append({
             'id': cnt,
             'Name': JsonProductGroup['GroupName'] + '_{:03d}'.format(cnt),
