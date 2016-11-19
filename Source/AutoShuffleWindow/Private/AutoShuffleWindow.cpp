@@ -129,6 +129,11 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
     NonProductsVisibleToggleButton->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Toggle Non Products Visibility"))));
     bIsNonProductsVisible = true;
 
+    TSharedRef<SButton> ExportActorNameMappingButton = SNew(SButton);
+    ExportActorNameMappingButton->SetVAlign(VAlign_Center);
+    ExportActorNameMappingButton->SetHAlign(HAlign_Center);
+    ExportActorNameMappingButton->SetContent(SNew(STextBlock).Text(FText::FromString(TEXT("Export Actor Name Mapping"))));
+
     auto OnAutoShuffleButtonClickedLambda = []() -> FReply
     {
         AutoShuffleImplementation();
@@ -154,11 +159,18 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
         NonProductsVisibilityTogglingImplementation();
         return FReply::Handled();
     };
+
+    auto OnExportActorNameMappingButtonClickedLambda = []() -> FReply
+    {
+        ExportMappingBetweenActorIdAndDisplayName();
+        return FReply::Handled();
+    };
     
     AutoShuffleButton->SetOnClicked(FOnClicked::CreateLambda(OnAutoShuffleButtonClickedLambda));
     OcclusionVisibilityButton->SetOnClicked(FOnClicked::CreateLambda(OnOcclusionVisibilityButtonClickedLambda));
     BatchConvexDecompButton->SetOnClicked(FOnClicked::CreateLambda(OnBatchConvexDecompButtonClickedLambda));
     NonProductsVisibleToggleButton->SetOnClicked(FOnClicked::CreateLambda(OnNonProductsVisibleToggleButtonClickedLamda));
+    ExportActorNameMappingButton->SetOnClicked(FOnClicked::CreateLambda(OnExportActorNameMappingButtonClickedLambda));
     FText Density = FText::FromString(TEXT("Density      "));
     FText Proxmity = FText::FromString(TEXT("Proxmity   "));
     FText Organize = FText::FromString(TEXT("Organize   "));
@@ -239,6 +251,10 @@ TSharedRef<SDockTab> FAutoShuffleWindowModule::OnSpawnPluginTab(const FSpawnTabA
         + SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
         [
             NonProductsVisibleToggleButton
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(30.f, 10.f)
+        [
+            ExportActorNameMappingButton
         ]
     ];
 }
@@ -627,6 +643,19 @@ void FAutoShuffleWindowModule::NonProductsVisibilityTogglingImplementation()
             }
         }
     }
+}
+
+void FAutoShuffleWindowModule::ExportMappingBetweenActorIdAndDisplayName()
+{
+    FString MappingFileDir = FPaths::Combine(*FPaths::GameDir(), *FString("Data"), *FString("ActorNameMapping.csv"));
+    auto EditorWorld = GEditor->GetEditorWorldContext().World();
+    FString FileContent = "";
+    for (TActorIterator<AActor> ActorIt(EditorWorld); ActorIt; ++ActorIt)
+    {
+        FString ActorID = ActorIt->GetName(), ActorLabel = ActorIt->GetActorLabel();
+        FileContent = FileContent + FString::Printf(TEXT("%s,%s\n"), *ActorID, *ActorLabel);
+    }
+    FFileHelper::SaveStringToFile(FileContent, *MappingFileDir);
 }
 
 bool FAutoShuffleWindowModule::ReadWhitelist()

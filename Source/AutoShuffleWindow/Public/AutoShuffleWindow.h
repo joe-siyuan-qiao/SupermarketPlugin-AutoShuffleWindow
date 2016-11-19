@@ -113,6 +113,9 @@ private:
     /** The implementation of toggling the non-products visibility */
     static void NonProductsVisibilityTogglingImplementation();
 
+    /** The implementation of export the mapping between actor id and actor display name */
+    static void ExportMappingBetweenActorIdAndDisplayName();
+
 public:
     /** Static method for parsing the Whitelist written in Json */
     static TSharedPtr<FJsonObject> ParseJSON(const FString& FileContents, const FString& NameForErrors, bool bSilent);
