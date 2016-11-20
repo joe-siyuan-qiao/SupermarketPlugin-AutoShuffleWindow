@@ -24,8 +24,8 @@ shelves.append({
     'Shelfoffset': [
         0.035,
         0.02,
-        0.02,
-        0.02,
+        0.016,
+        0.018,
         0.02
     ]
 })
@@ -65,6 +65,14 @@ productgroups.append({
     'Scale': 1.0,
     'Discard': False,
     'Description': 'Dark red can'
+})
+
+productgroups.append({
+    'GroupName': 'chips_pringles_small',
+    'ShelfName': 'BP_ShelfMain_002',
+    'Repeat': range(1, 501),
+    'Scale': 1.0,
+    'Discard': False
 })
 
 productgroups.append({
@@ -228,20 +236,68 @@ productgroups.append({
 })
 
 productgroups.append({
-    'GroupName': 'chips_pringles_small',
-    'ShelfName': 'BP_ShelfMain_002',
-    'Repeat': range(1, 501),
+    'GroupName': 'chips_olddutch',
+    'ShelfName': 'BP_ShelfMain_001',
+    'Repeat': range(1, 11) + range(21, 30) + [34, 40, 41, 73] + range(75, 80) + [104, 108, 111, 112, 115, 117, 119] + range(122, 126) + range(127, 130) + range(135, 138) + range(141, 144) + range(171, 178),
     'Scale': 1.0,
-    'Discard': False
+    'Discard': False,
+    'Description': 'Yello and white'
 })
 
 productgroups.append({
     'GroupName': 'chips_olddutch',
     'ShelfName': 'BP_ShelfMain_001',
-    'Repeat': range(1, 1001),
+    'Repeat': range(11, 21) + range(42, 68) + range(80, 95) + [164, 165, 167] + range(168, 171) + [182,],
     'Scale': 1.0,
-    'Discard': False
+    'Discard': False,
+    'Description': 'Red and white'
 })
+
+productgroups.append({
+    'GroupName': 'chips_olddutch',
+    'ShelfName': 'BP_ShelfMain_001',
+    'Repeat': range(30, 34) + range(35, 40) + range(68, 73) + [74, 97, 98] + range(100, 104) + [166],
+    'Scale': 1.0,
+    'Discard': False,
+    'Description': 'White and blue'
+})
+
+productgroups.append({
+    'GroupName': 'chips_olddutch',
+    'ShelfName': 'BP_ShelfMain_001',
+    'Repeat': [95, 96, 99, 101, 102],
+    'Scale': 1.0,
+    'Discard': False,
+    'Description': 'Green and white'
+})
+
+productgroups.append({
+    'GroupName': 'chips_olddutch',
+    'ShelfName': 'BP_ShelfMain_001',
+    'Repeat': [105, 106, 113, 116, 126, 130, 133, 134, 139, 140, 178, 179],
+    'Scale': 1.0,
+    'Discard': False,
+    'Description': 'Dark red'
+})
+
+productgroups.append({
+    'GroupName': 'chips_olddutch',
+    'ShelfName': 'BP_ShelfMain_001',
+    'Repeat': [107, 109, 110, 114, 118, 121, 131, 132, 138],
+    'Scale': 1.0,
+    'Discard': False,
+    'Description': 'Dark Green'
+})
+
+productgroups.append({
+    'GroupName': 'chips_olddutch',
+    'ShelfName': 'BP_ShelfMain_001',
+    'Repeat': range(144, 164) + [180, 181],
+    'Scale': 1.0,
+    'Discard': False,
+    'Description': 'Light blue'
+})
+
 
 productgroups.append({
     'GroupName': 'chips_box_lays',

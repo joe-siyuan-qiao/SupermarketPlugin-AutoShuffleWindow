@@ -26,9 +26,9 @@ static const FName AutoShuffleWindowTabName("AutoShuffleWindow");
 DEFINE_LOG_CATEGORY(LogAutoShuffle);
 
 // #define VERBOSE_AUTO_SHUFFLE
-#define AUTO_SHUFFLE_Y_TWO_END_OFFSET 50.f
+#define AUTO_SHUFFLE_Y_TWO_END_OFFSET 10.f
 #define AUTO_SHUFFLE_MAX_TRY_TIMES 50
-#define AUTO_SHUFFLE_INC_STEP 0.5f
+#define AUTO_SHUFFLE_INC_STEP 0.1f
 #define AUTO_SHUFFLE_INC_BOUND 1000
 #define AUTO_SHUFFLE_EXPANSION_BOUND 20
 
@@ -331,7 +331,7 @@ void FAutoShuffleWindowModule::AutoShuffleImplementation()
     }
     if (bIsOrganizeChecked)
     {
-        for (int i = 0; i < 50; ++i)
+        for (int i = 0; i < 2; ++i)
         {
             OrganizeProducts();
         }
