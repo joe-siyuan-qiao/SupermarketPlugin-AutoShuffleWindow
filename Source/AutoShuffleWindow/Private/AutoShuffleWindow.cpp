@@ -20,6 +20,8 @@
 #include "Editor/UnrealEd/Private/ConvexDecompTool.h"
 #include "Editor/UnrealEd/Private/GeomFitUtils.h"
 
+#include "Engine.h"
+
 static const FName AutoShuffleWindowTabName("AutoShuffleWindow");
 
 #define LOCTEXT_NAMESPACE "FAutoShuffleWindowModule"
@@ -415,16 +417,16 @@ void FAutoShuffleWindowModule::OcclusionVisibilityImplementation()
         {
             continue;
         }
-        if (!ActorArray[ActorIdx]->GetStaticMeshComponent()->StaticMesh)
+        if (!ActorArray[ActorIdx]->GetStaticMeshComponent()->GetStaticMesh())
         {
             continue;
         }
-        if (ActorArray[ActorIdx]->GetStaticMeshComponent()->StaticMesh->SourceModels.Num() == 0)
+        if (ActorArray[ActorIdx]->GetStaticMeshComponent()->GetStaticMesh()->SourceModels.Num() == 0)
         {
             continue;
         }
         FRawMesh RawMesh;
-        ActorArray[ActorIdx]->GetStaticMeshComponent()->StaticMesh->SourceModels[0].RawMeshBulkData->LoadRawMesh(RawMesh);
+        ActorArray[ActorIdx]->GetStaticMeshComponent()->GetStaticMesh()->SourceModels[0].RawMeshBulkData->LoadRawMesh(RawMesh);
         TArray<FVector> Vertices = RawMesh.VertexPositions;
         TArray<uint32> Wedges = RawMesh.WedgeIndices;
         // Assumption: this is a triangle mesh; otherwise, don't know how to do
@@ -548,15 +550,15 @@ void FAutoShuffleWindowModule::BatchConvexDecomposition()
             {
                 continue;
             }
-            if (!StaticMeshActor->GetStaticMeshComponent()->StaticMesh)
+            if (!StaticMeshActor->GetStaticMeshComponent()->GetStaticMesh())
             {
                 continue;
             }
-            if (!StaticMeshActor->GetStaticMeshComponent()->StaticMesh->RenderData)
+            if (!StaticMeshActor->GetStaticMeshComponent()->GetStaticMesh()->RenderData)
             {
                 continue;
             }
-            FStaticMeshLODResources &LODModel = StaticMeshActor->GetStaticMeshComponent()->StaticMesh->RenderData->LODResources[0];
+            FStaticMeshLODResources &LODModel = StaticMeshActor->GetStaticMeshComponent()->GetStaticMesh()->RenderData->LODResources[0];
             // Start a busy cursor so the user has feedback while waiting
             const FScopedBusyCursor BusyCursor;
             // make vertex buffer
@@ -583,7 +585,7 @@ void FAutoShuffleWindowModule::BatchConvexDecomposition()
                 }
             }
             // get the bodysetup we are going to put the collision into
-            UBodySetup *BodySetup = StaticMeshActor->GetStaticMeshComponent()->StaticMesh->BodySetup;
+            UBodySetup *BodySetup = StaticMeshActor->GetStaticMeshComponent()->GetStaticMesh()->BodySetup;
             if (BodySetup)
             {
                 BodySetup->RemoveSimpleCollision();
@@ -591,8 +593,8 @@ void FAutoShuffleWindowModule::BatchConvexDecomposition()
             else
             {
                 // otherwise, create one here.
-                StaticMeshActor->GetStaticMeshComponent()->StaticMesh->CreateBodySetup();
-                BodySetup = StaticMeshActor->GetStaticMeshComponent()->StaticMesh->BodySetup;
+                StaticMeshActor->GetStaticMeshComponent()->GetStaticMesh()->CreateBodySetup();
+                BodySetup = StaticMeshActor->GetStaticMeshComponent()->GetStaticMesh()->BodySetup;
             }
             // run actual util to do the work (if we have some valid input)
             if (Verts.Num() >= 3 && CollidingIndices.Num() > 3)
@@ -600,11 +602,11 @@ void FAutoShuffleWindowModule::BatchConvexDecomposition()
                 DecomposeMeshToHulls(BodySetup, Verts, CollidingIndices, InAccuracy, InMaxHullVerts);
             }
             // refresh collision change back to static mesh components
-            RefreshCollisionChange(StaticMeshActor->GetStaticMeshComponent()->StaticMesh);
+            RefreshCollisionChange(StaticMeshActor->GetStaticMeshComponent()->GetStaticMesh());
             // mark mesh as dirty
-            StaticMeshActor->GetStaticMeshComponent()->StaticMesh->MarkPackageDirty();
+            StaticMeshActor->GetStaticMeshComponent()->GetStaticMesh()->MarkPackageDirty();
             // mark the static mesh for collision customization
-            StaticMeshActor->GetStaticMeshComponent()->StaticMesh->bCustomizedCollision = true;
+            StaticMeshActor->GetStaticMeshComponent()->GetStaticMesh()->bCustomizedCollision = true;
         }
     }
 }
